@@ -3,7 +3,7 @@ import React from 'react';
 const Header = () => {
   return (
     <header className="flex justify-between items-center bg-white text-black p-4">
-      <h1 className="text-xl font-bold">Header disini</h1>
+      <h1 className="text-xl font-bold"></h1>
       <div className="flex items-center">
         <img
           src="/logo.png"

@@ -1,6 +1,6 @@
-import Header from '@/components/Header'
-import Sidebar from '@/components/Sidebar'
-import React from 'react'
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import React from 'react';
 
 export default function Layout({
   children,
@@ -8,26 +8,14 @@ export default function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <div className='flex'>
-      <Sidebar/>
-      <main className='w-full bg-slate-100
-      min-h-screen'>
-      <Header/>
-      {children}</main>
+    <div className='flex h-screen'>
+      <Sidebar />
+      <div className='flex flex-col w-full'>
+        <Header />
+        <main className='flex-1 overflow-y-auto bg-slate-100'>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
-
-// const Layout = ({children}) => {
-//   return (
-//     <div className='flex'>
-//       <Sidebar/>
-//       <main className='w-full bg-slate-100
-//       min-h-screen'>
-//       <Header/>
-//       {children}</main>
-//     </div>
-//   )
-// }
-
-// export default Layout

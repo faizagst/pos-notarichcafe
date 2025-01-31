@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Notarich Cade",
+  title: "Notarich Cafe",
   description: "Point of Sales Notarich Cafe",
 };
 

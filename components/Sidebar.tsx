@@ -58,7 +58,7 @@ const Sidebar = () => {
       name: "Library",
       icon: <Book />,
       subItems: [
-        { name: "Item Library", link: "/library/list" },
+        { name: "Item Library", link: "/library/item_library" },
         { name: "Modifiers", link: "/library/modifiers" },
         { name: "Categories", link: "/library/categories" },
         { name: "Bundle Package", link: "/library/bundle_package" },

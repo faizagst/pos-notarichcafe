@@ -23,6 +23,7 @@ const Sidebar = () => {
   const [activeItem, setActiveItem] = useState("");
   const [openCollapsible, setOpenCollapsible] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => !prev);
@@ -98,8 +99,8 @@ const Sidebar = () => {
       name: "Employee",
       icon: <Users />,
       subItems: [
-        { name: "Employee List", link: "#" },
-        { name: "Employee Access", link: "#" },
+        { name: "Employee List", link: "/employee/employee_list" },
+        { name: "Employee Access", link: "/employee/employee_access" },
       ],
     },
   ];

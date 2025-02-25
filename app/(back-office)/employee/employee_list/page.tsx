@@ -135,7 +135,7 @@ export default function EmployeeList() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-full bg-gray-100">
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-white px-10 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Employee List</h1>
@@ -165,41 +165,43 @@ export default function EmployeeList() {
         </div>
 
         <main className="flex-1 py-4 px-6 bg-white shadow-md rounded-lg">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead className="bg-gray-100 sticky top-0 z-10">
-              <tr className="border-b">
-                <th className="p-3 text-left">Employee Name</th>
-                <th className="p-3 text-left">Username</th>
-                <th className="p-3 text-left">Role</th>
-                <th className="p-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEmployees.length > 0 ? (
-                filteredEmployees.map((employee) => (
-                  <tr key={employee.id} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{employee.employee_name || '-'}</td>
-                    <td className="p-3">{employee.username || '-'}</td>
-                    <td className="p-3">{employee.role || '-'}</td>
-                    <td className="p-3 text-center flex justify-center space-x-2">
-                      <Button className="bg-yellow-500 text-white p-2" onClick={() => handleEditClick(employee)}>
-                        <Edit size={16} />
-                      </Button>
-                      <Button className="bg-red-500 text-white p-2" onClick={() => handleDeleteEmployee(employee.id)}>
-                        <Trash size={16} />
-                      </Button>
+          <div className="overflow-auto" style={{ maxHeight: '500px' }}>
+            <table className="min-w-full bg-white border border-gray-200">
+              <thead className="bg-gray-100 sticky top-0 z-10">
+                <tr className="border-b">
+                  <th className="p-3 text-left">Employee Name</th>
+                  <th className="p-3 text-left">Username</th>
+                  <th className="p-3 text-left">Role</th>
+                  <th className="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEmployees.length > 0 ? (
+                  filteredEmployees.map((employee) => (
+                    <tr key={employee.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3 sm:p-2 md:p-3 lg:p-4">{employee.employee_name || '-'}</td>
+                      <td className="p-3 sm:p-2 md:p-3 lg:p-4">{employee.username || '-'}</td>
+                      <td className="p-3 sm:p-2 md:p-3 lg:p-4">{employee.role || '-'}</td>
+                      <td className="p-3 text-center flex justify-center space-x-2 sm:space-x-1 md:space-x-2 lg:space-x-3">
+                        <Button className="bg-yellow-500 text-white p-2 sm:p-1 md:p-2 lg:p-3" onClick={() => handleEditClick(employee)}>
+                          <Edit size={16} />
+                        </Button>
+                        <Button className="bg-red-500 text-white p-2 sm:p-1 md:p-2 lg:p-3" onClick={() => handleDeleteEmployee(employee.id)}>
+                          <Trash size={16} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="p-3 text-center text-gray-500">
+                      No employees found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="p-3 text-center text-gray-500">
-                    No employees found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </main>
 
         {/* Modal for Add/Edit Employee */}

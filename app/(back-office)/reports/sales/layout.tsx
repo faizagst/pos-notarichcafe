@@ -8,7 +8,7 @@ type SalesLayoutProps = {
 
 const SalesLayout = ({ children }: SalesLayoutProps) => {
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <header className="bg-white px-10 py-4 flex items-center justify-between flex-shrink-0">
         <h1 className="text-4xl font-semibold">Sales</h1>

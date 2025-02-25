@@ -139,16 +139,19 @@ export default function EmployeeList() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-white px-10 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Employee List</h1>
-          <Button
-            className="bg-blue-600 text-white"
-            onClick={() => {
-              setSelectedEmployee({ id: 0, employee_name: '', username: '', password: '', role: '' });
-              setModalOpen(true);
-              setEditMode(false);
-            }}
-          >
-            Add Employee
-          </Button>
+          <div className="flex space-x-2">     
+            <Button className="bg-blue-500 text-white px-4 py-2">Export</Button>
+            <Button
+              className="bg-blue-600 text-white"
+              onClick={() => {
+                setSelectedEmployee({ id: 0, employee_name: '', username: '', password: '', role: '' });
+                setModalOpen(true);
+                setEditMode(false);
+              }}
+            >
+              Add Employee
+            </Button></div>
+
         </header>
 
         <div className="flex items-center px-6 py-2 bg-white">

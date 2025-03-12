@@ -16,6 +16,8 @@ const menuItems = [
   { name: "Discounts", path: "/reports/sales/discounts" },
   { name: "Taxes", path: "/reports/sales/taxes" },
   { name: "Gratuity", path: "/reports/sales/gratuity" },
+  { name: "Collected By", path: "/reports/sales/collected_by" },
+  { name: "Served By", path: "/reports/sales/served_by" },
 ];
 
 const SalesSidebar = () => {

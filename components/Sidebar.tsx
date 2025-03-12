@@ -41,7 +41,7 @@ const Sidebar = () => {
       icon: <FileText />,
       subItems: [
         { name: "Sales", link: "/reports/sales/summary" },
-        { name: "Transactions", link: "#" },
+        { name: "Transactions", link: "/reports/transactions" },
         { name: "Invoices", link: "#" },
         { name: "Shift", link: "#" },
       ],

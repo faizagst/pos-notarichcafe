@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
-
-// Koneksi Database
-const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "notarichcafe_pos",
-});
+import db from '@/lib/db';
 
 export async function DELETE(req: Request) {
   try {

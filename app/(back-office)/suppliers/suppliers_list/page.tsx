@@ -24,7 +24,7 @@ export default function SupplierList() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch("/api/suppliers/supplier_list");
+      const res = await fetch("/api/supplier/supplier_list");
       const data = await res.json();
       setSuppliers(data);
     } catch (error) {
@@ -46,7 +46,7 @@ export default function SupplierList() {
     }
 
     try {
-      const res = await fetch("/api/suppliers/add_supplier", {
+      const res = await fetch("/api/supplier/add_supplier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newSupplier),

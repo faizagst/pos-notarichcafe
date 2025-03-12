@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
-
-// Koneksi Database
-const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "notarichcafe_pos",
-});
+import db from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { nama, kontak, alamat } = await req.json();
+    const bodyText = await req.text(); // Baca body sebagai teks
+    console.log("Raw request body:", bodyText);
+
+    // Cek apakah body berupa JSON
+    let data;
+    try {
+      data = JSON.parse(bodyText);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid JSON format" }, { status: 400 });
+    }
+
+    const { nama, kontak, alamat } = data;
 
     if (!nama || !kontak || !alamat) {
       return NextResponse.json({ error: "Semua kolom harus diisi!" }, { status: 400 });
@@ -31,8 +35,10 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ message: "Supplier berhasil ditambahkan!" }, { status: 201 });
+
   } catch (error: any) {
     console.error("Database Error:", error);
     return NextResponse.json({ error: "Database error", details: error.message }, { status: 500 });
   }
 }
+

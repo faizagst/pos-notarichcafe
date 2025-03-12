@@ -23,7 +23,7 @@ export default function TransactionsPage() {
           <select className="border p-2 rounded">
             <option>All Outlet</option>
           </select>
-          <input type="date" className="border p-2 rounded" />
+          <input type="date" className="border p-2 rounded" defaultValue={new Date().toISOString().split('T')[0]} />
           <input type="text" placeholder="Receipt Number" className="border p-2 rounded" />
         </div>
         <Button>Export</Button>

@@ -4,23 +4,54 @@ import db from '@/lib/db';
 
 export async function DELETE(req: Request) {
   try {
-    const { id_supplier } = await req.json();
+    const { searchParams } = new URL(req.url);
+    const id_supplier = searchParams.get("id_supplier");
+
+    console.log("ID Supplier diterima di API:", id_supplier);
 
     if (!id_supplier) {
-      return NextResponse.json({ error: "ID Supplier harus diisi" }, { status: 400 });
+      console.error("Error: ID supplier tidak ditemukan di query parameter!");
+      return NextResponse.json(
+        { success: false, message: "ID supplier tidak ditemukan!" },
+        { status: 400 }
+      );
     }
 
+    // Konversi ke integer untuk validasi
+    const supplierIdInt = parseInt(id_supplier, 10);
+    if (isNaN(supplierIdInt)) {
+      console.error("Error: ID supplier bukan angka!");
+      return NextResponse.json(
+        { success: false, message: "ID supplier tidak valid!" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Menjalankan query update untuk supplier ID:", supplierIdInt);
+
+    // Query untuk soft delete
     const [result]: any = await db.execute(
-      "DELETE FROM supplier WHERE id_supplier = ?",
-      [id_supplier]
+      "UPDATE supplier SET is_deleted = 1 WHERE id_supplier = ?",
+      [supplierIdInt]
     );
 
-    if (result.affectedRows === 0) {
-      return NextResponse.json({ error: "Gagal menghapus supplier" }, { status: 500 });
-    }
+    console.log("Hasil query:", result);
 
-    return NextResponse.json({ message: "Supplier berhasil dihapus" }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: "Database error", details: error.message }, { status: 500 });
+    if (result.affectedRows > 0) {
+      console.log("Supplier berhasil dinonaktifkan.");
+      return NextResponse.json({ success: true, message: "Supplier berhasil di-nonaktifkan!" });
+    } else {
+      console.error("Error: Supplier tidak ditemukan atau sudah dihapus!");
+      return NextResponse.json(
+        { success: false, message: "Supplier tidak ditemukan atau sudah dihapus!" },
+        { status: 404 }
+      );
+    }
+  } catch (error) {
+    console.error("Error saat menonaktifkan supplier:", (error as Error).message);
+    return NextResponse.json(
+      { success: false, message: "Gagal menonaktifkan supplier!" },
+      { status: 500 }
+    );
   }
 }

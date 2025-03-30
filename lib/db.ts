@@ -1,11 +1,13 @@
 import mysql from 'mysql2/promise';
 
 const db = mysql.createPool({
-    host: 'localhost',
-    user: 'root', // Default MySQL username
-    password: '', // Default MySQL password
-    database: 'notarichcafe_pos', // Your database name
-
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
+    waitForConnections: true,
+    connectionLimit: 10, // jumlah maksimal koneksi aktif
+    queueLimit: 0,
 });
 
 export default db;

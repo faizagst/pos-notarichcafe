@@ -8,9 +8,10 @@ import {
   Book,
   Coffee,
   CreditCard,
-  Truck,
+  UtensilsCrossed,
   Users,
   ChevronRight,
+  PencilLine,
 } from "lucide-react";
 import {
   Collapsible,
@@ -18,19 +19,23 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-const Sidebar = () => {
+interface SidebarProps {
+  onToggle: (open: boolean) => void;
+  isCollapsed: boolean;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
   const router = useRouter();
   const [activeItem, setActiveItem] = useState("");
   const [openCollapsible, setOpenCollapsible] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+
   
 
   const toggleSidebar = () => {
-    setIsCollapsed((prev) => !prev);
+    onToggle(!isCollapsed);
   };
 
   const toggleCollapsible = (name: string) => {
-    setIsCollapsed(false);
     setOpenCollapsible((prev) => (prev === name ? null : name));
   };
 
@@ -42,8 +47,6 @@ const Sidebar = () => {
       subItems: [
         { name: "Sales", link: "/reports/sales/summary" },
         { name: "Transactions", link: "/reports/transactions" },
-        { name: "Invoices", link: "#" },
-        { name: "Shift", link: "#" },
       ],
     },
     {
@@ -51,55 +54,59 @@ const Sidebar = () => {
       icon: <Box />,
       subItems: [
         { name: "Summary", link: "/inventory/summary" },
-        { name: "Transfer", link: "#" },
-        { name: "Adjustment", link: "#" },
+        { name: "Supplier", link: "/inventory/supplier" },
+        { name: "Purchase Order (PO)", link: "/inventory/purchaseOrder" },
       ],
     },
     {
       name: "Library",
       icon: <Book />,
       subItems: [
-        { name: "Item Library", link: "/library/item_library" },
-        { name: "Modifiers", link: "/library/modifiers" },
-        { name: "Categories", link: "/library/categories" },
+
         { name: "Bundle Package", link: "/library/bundle_package" },
-        { name: "Promo", link: "/library/promo" },
         { name: "Discounts", link: "/library/discounts" },
         { name: "Taxes", link: "/library/taxes" },
         { name: "Gratuity", link: "/library/gratuity" },
-        { name: "Sales Type", link: "/library/sales_type" },
+      ],
+    },
+    {
+      name: "Modifiers",
+      icon: <CreditCard />,
+      subItems: [
+        { name: "Modifiers Library", link: "/modifiers/modifiersLibrary" },
+        { name: "Modifier Category", link: "/modifiers/modifierCategory" },
       ],
     },
     {
       name: "Ingredients",
       icon: <Coffee />,
       subItems: [
-        { name: "Ingredients Library", link: "#" },
-        { name: "Ingredients Categories", link: "#" },
-        { name: "Recipes", link: "#" },
+        { name: "Ingredients Library", link: "/ingredients/ingredientsLibrary" },
+        { name: "Ingredients Category", link: "/ingredients/ingredientCategory" },
+        { name: "Recipes", link: "/ingredients/recipes" },
       ],
     },
     {
-      name: "Payment",
-      icon: <CreditCard />,
+      name: "Menu Notarich",
+      icon: <UtensilsCrossed/>,
       subItems: [
-        { name: "Invoices", link: "#" },
-        { name: "Transactions", link: "#" },
+        { name: "Menu List", link: "/menuNotarich/menuList" },
+        { name: "Menu Category", link: "/menuNotarich/menuCategory" },
       ],
     },
     {
-      name: "Suppliers",
-      icon: <Truck />,
+      name: "Recap Notarich",
+      icon: <PencilLine/>,
       subItems: [
-        { name: "Suppliers List", link: "/suppliers/suppliers_list" },
-        { name: "Purchase Order", link: "/suppliers/purchase_order" },
+        { name: "Stock Cafe", link: "/recapNotarich/stockCafe" },
+        { name: "Stock Inventory", link: "/recapNotarich/stockInventory" },
       ],
     },
     {
       name: "Employee",
       icon: <Users />,
       subItems: [
-        { name: "Employee List", link: "/employee/employee_list" },
+        { name: "Employee Slots", link: "/employee/employee_slots" },
         { name: "Employee Access", link: "/employee/employee_access" },
       ],
     },
@@ -112,10 +119,8 @@ const Sidebar = () => {
 
   return (
     <div
-      className={`${
-        isCollapsed ? "w-20" : "w-64"
-      } h-screen bg-white text-black overflow-hidden border-r border-gray-200 shadow-lg transition-all duration-300 flex flex-col`}
-    >
+    className={`fixed top-0 left-0 h-full bg-white border-r border-gray-300 shadow-lg z-50 transition-all duration-300 overflow-hidden flex flex-col
+    ${isCollapsed ? "w-20" : "w-64"}`}>
       {/* Logo */}
       <div className="bg-slate-800 flex items-center py-6 px-5">
         <div className="flex items-center w-full">
@@ -135,7 +140,7 @@ const Sidebar = () => {
       </div>
 
       {/* Links */}
-      <nav className="flex-1 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto overflow-hidden">
         <ul>
           {menuItems.map((item, index) => (
             <li key={index}>

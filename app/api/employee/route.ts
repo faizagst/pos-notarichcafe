@@ -1,101 +1,80 @@
-import { NextResponse, NextRequest } from 'next/server';
-import { RowDataPacket } from 'mysql2/promise';
-import db from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import db from "@/lib/db";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
-// GET: Ambil Data Karyawan
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 export async function GET() {
-    try {
-        const [rows] = await db.query('SELECT id_pengguna, nama AS employee_name, username, role FROM pengguna');
-        const employees = (rows as RowDataPacket[]).map((row) => ({
-            id: row.id_pengguna,
-            employee_name: row.employee_name,
-            username: row.username,
-            role: row.role
-        }));
-        return NextResponse.json(employees);
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
+  try {
+    const [employees] = await db.query(
+      "SELECT e.*, r.name AS roleName FROM employee e LEFT JOIN roleEmployee r ON e.roleId = r.id"
+    );
+    return NextResponse.json(employees, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Error fetching employees" }, { status: 500 });
+  }
 }
 
-// POST: Tambah Data Karyawan
 export async function POST(req: NextRequest) {
-    try {
-        const { employee_name, username, password, role } = await req.json();
+  try {
+    const { firstName, lastName, email, phone, roleId, expiredDate } = await req.json();
+    const inviteToken = crypto.randomBytes(16).toString("hex");
+    const inviteExpiresAt = new Date();
+    inviteExpiresAt.setMinutes(inviteExpiresAt.getMinutes() + 5);
 
-        if (!employee_name || !username || !password || !role) {
-            return NextResponse.json({
-                error: 'All fields are required',
-                details: 'Ensure all fields are filled in.'
-            }, { status: 400 });
-        }
+    const [result]: any = await db.query(
+      "INSERT INTO employee (firstName, lastName, email, phone, roleId, expiredDate, inviteToken, inviteExpiresAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [firstName, lastName, email, phone, roleId, new Date(expiredDate), inviteToken, inviteExpiresAt]
+    );
 
-        const [result]: any = await db.execute(
-            'INSERT INTO pengguna (nama, username, password, role) VALUES (?, ?, ?, ?)',
-            [employee_name, username, password, role]
-        );
-
-        if (result?.affectedRows === 0) {
-            return NextResponse.json({ error: 'Failed to add employee' }, { status: 500 });
-        }
-
-        return NextResponse.json({ message: 'Employee added successfully' }, { status: 201 });
-    } catch (error: any) {
-        console.error('Database Error:', error);
-        return NextResponse.json({ error: 'Database error', details: error.message }, { status: 500 });
+    if (email) {
+      const registerLink = `http://localhost:3000/register?token=${inviteToken}`;
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Selamat Datang di Notarich Cafe",
+        text: `Halo ${firstName} ${lastName}, selamat datang di keluarga Notarich Cafe. Silakan registrasi akunmu melalui link berikut (berlaku 5 menit): ${registerLink}. Terima Kasih!`,
+      });
     }
+
+    return NextResponse.json({ id: result.insertId, firstName, lastName, email, phone, roleId, expiredDate }, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Error creating employee" }, { status: 500 });
+  }
 }
 
-// PUT: Update Data Karyawan
 export async function PUT(req: NextRequest) {
-    try {
-        const { id, employee_name, username, role } = await req.json();
+  try {
+    const { id, firstName, lastName, email, phone, roleId, expiredDate } = await req.json();
 
-        if (!id || !employee_name || !username || !role) {
-            return NextResponse.json({
-                error: 'All fields are required',
-                details: 'Ensure all fields are filled in.'
-            }, { status: 400 });
-        }
+    await db.query(
+      "UPDATE employee SET firstName = ?, lastName = ?, email = ?, phone = ?, roleId = ?, expiredDate = ? WHERE id = ?",
+      [firstName, lastName, email, phone, roleId, new Date(expiredDate), id]
+    );
 
-        const [result]: any = await db.execute(
-            'UPDATE pengguna SET nama = ?, username = ?, role = ? WHERE id_pengguna = ?',
-            [employee_name, username, role, id]
-        );
-
-        if (result?.affectedRows === 0) {
-            return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
-        }
-
-        return NextResponse.json({ message: 'Employee updated successfully' });
-    } catch (error: any) {
-        console.error('Database Error:', error);
-        return NextResponse.json({ error: 'Database error', details: error.message }, { status: 500 });
-    }
+    return NextResponse.json({ id, firstName, lastName, email, phone, roleId, expiredDate }, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Error updating employee" }, { status: 500 });
+  }
 }
 
-// DELETE: Hapus Data Karyawan
 export async function DELETE(req: NextRequest) {
-    try {
-        const { id } = await req.json();
-
-        if (!id) {
-            return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-        }
-
-        const [result]: any = await db.execute(
-            'DELETE FROM pengguna WHERE id_pengguna = ?',
-            [id]
-        );
-
-        if (result?.affectedRows === 0) {
-            return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
-        }
-
-        return NextResponse.json({ message: 'Employee deleted successfully' });
-    } catch (error: any) {
-        console.error('Database Error:', error);
-        return NextResponse.json({ error: 'Database error', details: error.message }, { status: 500 });
-    }
+  try {
+    const { id } = await req.json();
+    await db.query("DELETE FROM employee WHERE id = ?", [id]);
+    return NextResponse.json({ message: "Employee deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Error deleting employee" }, { status: 500 });
+  }
 }

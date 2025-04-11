@@ -8,9 +8,9 @@ interface Bundle {
   image: string;
   price: number;
   Status: string;
-  bundleCompositions: { 
-    id: number; 
-    menu: { id: number; name: string; price: number }; 
+  bundleCompositions: {
+    id: number;
+    menu: { id: number; name: string; price: number };
     amount: number; // ditambahkan properti amount
   }[];
   description?: string;
@@ -50,7 +50,7 @@ const BundlesPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
-  
+
   // State untuk search bar berdasarkan kategori
   const [searchCategory, setSearchCategory] = useState<string>("");
 
@@ -110,10 +110,9 @@ const BundlesPage: React.FC = () => {
 
   // Filter bundles berdasarkan kategori (property 'category')
   const displayedBundles = bundles.filter(bundle =>
-    bundle.name.toLowerCase().includes(searchCategory.toLowerCase()) ||
-    bundle.category.toLowerCase().includes(searchCategory.toLowerCase())
+    bundle.name.toLowerCase().includes(searchCategory.toLowerCase()) 
   );
-  
+
   return (
     <div className="p-10 mt-[65px]" >
       <h1 className="text-2xl font-bold mb-4">Daftar Bundles</h1>
@@ -123,12 +122,12 @@ const BundlesPage: React.FC = () => {
       >
         Tambah Bundle
       </button>
-      
+
       {/* Search Bar untuk kategori */}
       <div className="flex justify-end mb-4">
         <input
           type="text"
-          placeholder="Cari kategori..."
+          placeholder="Cari nama bundle..."
           value={searchCategory}
           onChange={(e) => setSearchCategory(e.target.value)}
           className="w-1/3 p-2 border border-gray-300 rounded"
@@ -163,14 +162,14 @@ const BundlesPage: React.FC = () => {
                 displayedBundles.map((bundle) => (
                   <tr key={bundle.id}>
                     <td className="px-6 py-4">
-                      <img src={bundle.image} alt={bundle.name} className="w-24 h-auto object-cover" />
+                      <img src={bundle.image} alt={bundle.name} className="w-16 h-16 object-cover rounded" />
                     </td>
                     <td className="px-6 py-4">{bundle.name}</td>
                     <td className="px-6 py-4">
                       {bundle.bundleCompositions && bundle.bundleCompositions.length > 0
                         ? bundle.bundleCompositions
-                            .map((comp) => `${comp.menu.name} (${comp.amount})`)
-                            .join('+ ')
+                          .map((comp) => `${comp.menu.name} (${comp.amount})`)
+                          .join('+ ')
                         : '-'}
                     </td>
                     <td className="px-6 py-4">{bundle.price}</td>
@@ -546,8 +545,8 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
   );
   const [menuOptions, setMenuOptions] = useState<MenuOption[]>([]);
   const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
-   // Inisialisasi dengan diskon yang sudah ada (jika ada)
-   const [selectedDiscountId, setSelectedDiscountId] = useState<string>(
+  // Inisialisasi dengan diskon yang sudah ada (jika ada)
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>(
     bundle.discount ? bundle.discount.id.toString() : ""
   );
   const [modifierOptions, setModifierOptions] = useState<Modifier[]>([]);
@@ -647,7 +646,7 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
         method: 'PUT',
         body: formData,
       });
-      
+
       const data = await res.json();
       if (!res.ok) {
         setError(data.message || 'Gagal mengupdate bundle');
@@ -779,22 +778,22 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
           <div className="mb-4">
             <label className="block mb-1">Pilih Diskon (Opsional):</label>
             <select
-  value={selectedDiscountId}
-  onChange={(e) => setSelectedDiscountId(e.target.value)}
-  className="w-full p-2 border rounded"
->
-  {selectedDiscountId === "" && (
-    <option value="">--Tidak ada Diskon--</option>
-  )}
-  {availableDiscounts.map((discount) => (
-    <option key={discount.id} value={discount.id}>
-      {discount.name}{" "}
-      {discount.type === "PERCENTAGE"
-        ? `(${discount.value}%)`
-        : `(Rp ${discount.value})`}
-    </option>
-  ))}
-</select>
+              value={selectedDiscountId}
+              onChange={(e) => setSelectedDiscountId(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              {selectedDiscountId === "" && (
+                <option value="">--Tidak ada Diskon--</option>
+              )}
+              {availableDiscounts.map((discount) => (
+                <option key={discount.id} value={discount.id}>
+                  {discount.name}{" "}
+                  {discount.type === "PERCENTAGE"
+                    ? `(${discount.value}%)`
+                    : `(Rp ${discount.value})`}
+                </option>
+              ))}
+            </select>
 
           </div>
           {error && <p className="text-red-500 mb-4">{error}</p>}

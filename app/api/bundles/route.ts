@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     // Ambil semua menu dengan type = 'BUNDLE'
     const [bundles] = await db.query<RowDataPacket[]>(`
-      SELECT m.id, m.name, m.type, m.price, m.description, m.image
+      SELECT *
       FROM menu m
       WHERE m.type = 'BUNDLE'
     `);
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
       compositionsMap[comp.bundleId].push({
         menuId: comp.menuId,
-        quantity: comp.quantity,
+        amount: comp.quantity,
         menu: {
           id: comp.menu_id,
           name: comp.menu_name,
@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
           type: comp.menu_type,
           description: comp.menu_description,
           image: comp.menu_image,
+
         },
       });
     }

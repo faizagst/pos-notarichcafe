@@ -1,149 +1,161 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import multer from "multer";
-import path from "path";
 import fs from "fs";
-import { IncomingForm } from "formidable";
+import path from "path";
+import { Readable } from "stream";
 
-export const dynamic = "force-dynamic";
-
-const uploadDir = path.join(process.cwd(), "public/uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-// Middleware untuk handle multipart form dengan formidable
-const parseForm = async (req: NextRequest): Promise<{
-  fields: Record<string, any>;
-  files: Record<string, any>;
-}> => {
-  const form = new IncomingForm({
-    multiples: false,
-    uploadDir,
-    keepExtensions: true,
-    filename: (name, ext, part) => {
-      const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      return `${name}-${unique}${ext}`;
-    },
-  });
-
-  return new Promise((resolve, reject) => {
-    form.parse(req as any, (err, fields, files) => {
-      if (err) reject(err);
-      else resolve({ fields, files });
-    });
-  });
+// Disable body parsing
+export const config = {
+  api: {
+    bodyParser: false,
+  },
 };
 
-// PUT: Update bundle
-export async function PUT(req: NextRequest, context: { params: { id: string } }) {
-  const id = Number(context.params.id);
+const uploadDir = path.join(process.cwd(), "public/uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
+});
+const upload = multer({ storage });
+const uploadMiddleware = upload.single("image");
+
+function runMiddleware(req: any, res: any, fn: Function) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) return reject(result);
+      resolve(result);
+    });
+  });
+}
+
+// Convert NextRequest to Node.js Readable stream
+async function toNodeReadable(req: NextRequest): Promise<Readable> {
+  const stream = req.body as ReadableStream<Uint8Array>;
+  const reader = stream.getReader();
+  return new Readable({
+    async read() {
+      const { done, value } = await reader.read();
+      this.push(done ? null : Buffer.from(value));
+    },
+  });
+}
+
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params; // 👈 ini kuncinya!
   if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
 
   const contentType = req.headers.get("content-type") || "";
 
   try {
     if (contentType.includes("multipart/form-data")) {
-      const { fields, files } = await parseForm(req);
-      const { name, description, price, includedMenus } = fields;
+      const nodeReadable = await toNodeReadable(req);
+      const mockReq: any = Object.assign(nodeReadable, {
+        headers: Object.fromEntries(req.headers.entries()),
+        method: req.method,
+        url: "",
+      });
+
+      const mockRes = {
+        end: () => {},
+        setHeader: () => {},
+        getHeader: () => {},
+      };
+
+      await runMiddleware(mockReq, mockRes, uploadMiddleware);
+
+      const { name, description, price, includedMenus } = mockReq.body;
+      const parsedMenuRows = includedMenus
+        ? typeof includedMenus === "string"
+          ? JSON.parse(includedMenus)
+          : includedMenus
+        : [];
+
+      const imageUrl = mockReq.file ? `/uploads/${mockReq.file.filename}` : undefined;
 
       if (!name || !price) {
         return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
       }
 
-      let parsedMenus: { menuId: number; amount: number }[] = [];
-      if (includedMenus) {
-        parsedMenus = typeof includedMenus === "string" ? JSON.parse(includedMenus) : includedMenus;
+      // Build dynamic query
+      const fields = ["name = ?", "description = ?", "price = ?"];
+      const values = [name, description || null, parseFloat(price)];
+
+      if (imageUrl) {
+        fields.push("image = ?");
+        values.push(imageUrl);
       }
 
-      let imagePath: string | undefined;
-      if (files.image && files.image[0]) {
-        const filename = path.basename(files.image[0].filepath);
-        imagePath = `/uploads/${filename}`;
+      values.push(id);
+      const updateQuery = `UPDATE menu SET ${fields.join(", ")} WHERE id = ?`;
+
+      await db.execute(updateQuery, values);
+
+      await db.execute("DELETE FROM menuComposition WHERE bundleId = ?", [id]);
+
+      if (parsedMenuRows.length > 0) {
+        const values = parsedMenuRows.map((row: any) => [id, row.menuId, row.amount]);
+        await db.query("INSERT INTO menuComposition (bundleId, menuId, amount) VALUES ?", [values]);
       }
 
-      // Update menu
-      await db.execute(
-        `UPDATE menu SET name = ?, description = ?, price = ?, ${imagePath ? "image = ?," : ""} updatedAt = NOW() WHERE id = ?`,
-        imagePath
-          ? [name, description || null, price, imagePath, id]
-          : [name, description || null, price, id]
-      );
-
-      // Delete existing compositions
-      await db.execute(`DELETE FROM menuComposition WHERE bundleId = ?`, [id]);
-
-      // Insert new ones
-      if (parsedMenus.length > 0) {
-        const values = parsedMenus.map((m) => [id, m.menuId, m.amount]);
-        await db.query(`INSERT INTO menuComposition (bundleId, menuId, amount) VALUES ?`, [values]);
-      }
-
-      // Fetch result
-      const [bundleRows]: any = await db.query(
-        `SELECT * FROM menu WHERE id = ?`,
+      const [result]: any = await db.query(
+        `SELECT m.*, mc.menuId, mc.amount, mm.name as menuName
+         FROM menu m
+         LEFT JOIN menuComposition mc ON m.id = mc.bundleId
+         LEFT JOIN menu mm ON mc.menuId = mm.id
+         WHERE m.id = ?`,
         [id]
       );
-      const bundle = bundleRows[0];
-
-      const [compositions]: any = await db.query(
-        `SELECT mc.*, m.* FROM menuComposition mc JOIN menu m ON mc.menuId = m.id WHERE mc.bundleId = ?`,
-        [id]
-      );
-
-      const formattedCompositions = compositions.map((row: any) => ({
-        id: row.id,
-        bundleId: row.bundleId,
-        menuId: row.menuId,
-        amount: row.amount,
-        menu: {
-          id: row.menuId,
-          name: row.name,
-          price: row.price,
-          type: row.type,
-          image: row.image,
-        },
-      }));
 
       return NextResponse.json({
         message: "Bundle updated successfully",
-        bundle: { ...bundle, bundleCompositions: formattedCompositions },
+        bundle: result,
       });
     } else {
-      // Handle toggle status (JSON body)
       const body = await req.json();
       const { isActive } = body;
-      if (isActive === undefined) {
+
+      if (typeof isActive === "undefined") {
         return NextResponse.json({ message: "Missing isActive field" }, { status: 400 });
       }
 
-      await db.execute(`UPDATE menu SET isActive = ? WHERE id = ?`, [isActive, id]);
-      const [rows]: any = await db.query(`SELECT * FROM menu WHERE id = ?`, [id]);
+      await db.execute("UPDATE menu SET isActive = ? WHERE id = ?", [isActive, id]);
+
+      const [updated]: any = await db.query("SELECT * FROM menu WHERE id = ?", [id]);
 
       return NextResponse.json({
         message: "Bundle status updated successfully",
-        bundle: rows[0],
+        bundle: updated[0],
       });
     }
   } catch (error) {
-    console.error("PUT /bundles/[id] error:", error);
+    console.error("Error updating bundle:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
 
-// DELETE: Soft delete bundle
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
-  const id = Number(context.params.id);
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params; // 👈 juga pakai await
   if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
 
   try {
-    await db.execute(`UPDATE menu SET isActive = false WHERE id = ?`, [id]);
-    const [rows]: any = await db.query(`SELECT * FROM menu WHERE id = ?`, [id]);
+    await db.execute("UPDATE menu SET isActive = false WHERE id = ?", [id]);
+    const [result]: any = await db.query("SELECT * FROM menu WHERE id = ?", [id]);
 
     return NextResponse.json({
       message: "Bundle deleted successfully",
-      bundle: rows[0],
+      bundle: result[0],
     });
   } catch (error) {
-    console.error("DELETE /bundles/[id] error:", error);
+    console.error("Error deleting bundle:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }

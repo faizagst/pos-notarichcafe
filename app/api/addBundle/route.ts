@@ -1,11 +1,30 @@
-// app/api/add-bundle/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/lib/db";
-import multer from "multer";
 import path from "path";
 import fs from "fs";
+import multer from "multer";
+import { promisify } from "util";
 import { Readable } from "stream";
-import { IncomingForm } from "formidable";
+import db from "@/lib/db";
+
+// Buat folder jika belum ada
+const uploadDir = path.join(process.cwd(), "public/uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Setup multer
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = file.originalname.split(".").pop();
+    const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+    cb(null, filename);
+  },
+});
+const upload = multer({ storage });
+const runMiddleware = promisify(upload.single("image"));
 
 export const config = {
   api: {
@@ -13,121 +32,102 @@ export const config = {
   },
 };
 
-// Setup folder uploads
-const uploadDir = path.join(process.cwd(), "public/uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Fungsi untuk convert request body ke format multer bisa baca
+async function parseMultipartFormData(req: NextRequest): Promise<FormData> {
+  const formData = new FormData();
 
-// Helper: Simpan file upload
-async function saveFile(file: any) {
-  const ext = path.extname(file.originalFilename);
-  const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-  const filepath = path.join(uploadDir, filename);
+  const buffers = await req.arrayBuffer();
+  const stream = Readable.from(Buffer.from(buffers));
 
-  const data = fs.readFileSync(file.filepath);
-  fs.writeFileSync(filepath, data);
-  return `/uploads/${filename}`;
-}
-
-// Helper: Parse form-data
-function parseForm(req: NextRequest): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const form = new IncomingForm({ uploadDir, keepExtensions: true });
-    form.parse(req as any, (err, fields, files) => {
-      if (err) return reject(err);
-      resolve({ fields, files });
-    });
+  const req_ = Object.assign(stream, {
+    headers: req.headers,
+    method: req.method,
+    url: req.url,
   });
+
+  const res_ = {
+    setHeader: () => {},
+    end: () => {},
+  };
+
+  // Jalankan multer untuk parsing
+  await runMiddleware(req_ as any, res_ as any);
+
+  return (req_ as any).body;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await parseForm(req);
-    const { fields, files } = formData;
+    const formData = await req.formData();
 
-    const {
-      name,
-      description,
-      price,
-      includedMenus,
-      discountId,
-      modifierIds,
-    } = fields;
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const price = formData.get("price") as string;
+    const includedMenus = formData.get("includedMenus") as string;
+    const discountId = formData.get("discountId") as string;
+    const modifierIds = formData.get("modifierIds") as string;
+    const imageFile = formData.get("image") as File;
 
     if (!name || !price) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
-    const imagePath = files.image ? await saveFile(files.image[0]) : "";
+    // Simpan file
+    let imagePath = "";
+    if (imageFile) {
+      const ext = imageFile.name.split(".").pop();
+      const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+      const buffer = Buffer.from(await imageFile.arrayBuffer());
+      fs.writeFileSync(`${uploadDir}/${filename}`, buffer);
+      imagePath = `/uploads/${filename}`;
+    }
 
-    // Buat bundle menu
+    // Simpan bundle ke database
     const [result] = await db.execute(
-      `INSERT INTO menu (name, description, image, price, category, Status, type)
+      `INSERT INTO Menu (name, description, image, price, category, Status, type)
        VALUES (?, ?, ?, ?, 'bundle', 'tersedia', 'BUNDLE')`,
       [name, description || null, imagePath, parseFloat(price)]
     );
 
     const newBundleId = (result as any).insertId;
 
-    // Handle includedMenus
-    let parsedMenus: { menuId: number; amount: number }[] = [];
+    // Simpan menu composition jika ada
     if (includedMenus) {
-      parsedMenus = typeof includedMenus === "string"
-        ? JSON.parse(includedMenus)
-        : includedMenus;
-      for (const row of parsedMenus) {
+      const parsed = JSON.parse(includedMenus);
+      for (const row of parsed) {
         await db.execute(
-          `INSERT INTO menuComposition (bundleId, menuId, amount) VALUES (?, ?, ?)`,
+          `INSERT INTO MenuComposition (bundleId, menuId, amount) VALUES (?, ?, ?)`,
           [newBundleId, row.menuId, row.amount]
         );
       }
     }
 
-    // Handle discountId
-    if (discountId && discountId.toString().trim() !== "") {
+    // Simpan discount
+    if (discountId && discountId.trim() !== "") {
       await db.execute(
-        `INSERT INTO menuDiscount (menuId, discountId) VALUES (?, ?)`,
+        `INSERT INTO MenuDiscount (menuId, discountId) VALUES (?, ?)`,
         [newBundleId, parseInt(discountId)]
       );
     }
 
-    // Handle modifierIds
+    // Simpan modifier
     if (modifierIds) {
-      const parsedModifierIds = typeof modifierIds === "string"
-        ? JSON.parse(modifierIds)
-        : modifierIds;
-
-      for (const modId of parsedModifierIds) {
+      const parsed = JSON.parse(modifierIds);
+      for (const modId of parsed) {
         await db.execute(
-          `INSERT INTO menuModifier (menuId, modifierId) VALUES (?, ?)`,
+          `INSERT INTO MenuModifier (menuId, modifierId) VALUES (?, ?)`,
           [newBundleId, modId]
         );
       }
     }
 
-    // Fetch created bundle detail
-    const [bundleRows] = await db.query(
-      `SELECT * FROM menu WHERE id = ?`,
-      [newBundleId]
-    );
-
-    const [compositionRows] = await db.query(
-      `SELECT mc.*, m.* FROM menuComposition mc
-       JOIN menu m ON mc.menuId = m.id
-       WHERE mc.bundleId = ?`,
-      [newBundleId]
-    );
-
     return NextResponse.json({
       message: "Bundle created successfully",
-      bundle: {
-        ...(Array.isArray(bundleRows) && bundleRows[0]),
-        bundleCompositions: compositionRows,
-      },
+      bundleId: newBundleId,
     }, { status: 201 });
+
   } catch (error) {
-    console.error("Error creating bundle:", error);
+    console.error("Error creating bundle (App Router):", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }

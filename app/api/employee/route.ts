@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     inviteExpiresAt.setMinutes(inviteExpiresAt.getMinutes() + 5);
 
     const [result]: any = await db.query(
-      "INSERT INTO employee (firstName, lastName, email, phone, roleId, expiredDate, inviteToken, inviteExpiresAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO employee (firstName, lastName, email, phone, roleId, expiredDate, inviteToken, inviteExpiresAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())",
       [firstName, lastName, email, phone, roleId, new Date(expiredDate), inviteToken, inviteExpiresAt]
     );
 
@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest) {
     const { id, firstName, lastName, email, phone, roleId, expiredDate } = await req.json();
 
     await db.query(
-      "UPDATE employee SET firstName = ?, lastName = ?, email = ?, phone = ?, roleId = ?, expiredDate = ? WHERE id = ?",
+      "UPDATE employee SET firstName = ?, lastName = ?, email = ?, phone = ?, roleId = ?, expiredDate = ?, updatedAt = NOW() WHERE id = ?",
       [firstName, lastName, email, phone, roleId, new Date(expiredDate), id]
     );
 

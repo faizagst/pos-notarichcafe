@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-
-// 1. Import Toastify
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import toast from "react-hot-toast";
 
 interface Employee {
   id: number;
@@ -12,10 +9,8 @@ interface Employee {
   lastName: string;
   email: string;
   phone: string;
-  role: {
-    id: number;
-    name: string;
-  };
+  roleId: number;
+  roleName: string;
   expiredDate: string;
   employeeStatus: string;
 }
@@ -79,7 +74,7 @@ export default function EmployeeSlots() {
       setLastName(employee.lastName);
       setEmail(employee.email || "");
       setPhone(employee.phone?.replace("+62", "") || "");
-      setRoleId(employee.role.id.toString());
+      setRoleId(employee.roleId.toString());
       setExpiredDate(employee.expiredDate.slice(0, 10));
     } else {
       resetForm();
@@ -162,9 +157,6 @@ export default function EmployeeSlots() {
 
   return (
     <div className="flex min-h-screen bg-white text-black">
-      {/* 2. Tempatkan ToastContainer di level root komponen */}
-      <ToastContainer />
-
       <div className={`flex-1 p-8 }`}>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl md:text-4xl font-bold">Employee Slots</h1>
@@ -193,7 +185,7 @@ export default function EmployeeSlots() {
                   </td>
                   <td className="border p-2">{emp.email || "-"}</td>
                   <td className="border p-2">{emp.phone || "-"}</td>
-                  <td className="border p-2">{emp.role?.name || "-"}</td>
+                  <td className="border p-2">{emp.roleName || "-"}</td>
                   <td className="border p-2">{new Date(emp.expiredDate).toLocaleDateString()}</td>
                   <td className="border p-2">
                     <button onClick={() => handleOpenForm(emp)} className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md mr-2">

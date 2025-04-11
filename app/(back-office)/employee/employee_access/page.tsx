@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-
-// 1. Import React Toastify
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { backofficePermissionTree } from "@/lib/backofficePermissionTree";
+import toast from "react-hot-toast";
 
 interface EmployeeAssigned {
   id: number;
-  firstName: string;
-  lastName: string;
+  name: string;
 }
 
 interface RoleEmployee {
@@ -42,27 +39,28 @@ interface BackofficePermissions {
     transactions: boolean;
   };
 
-  // View Menu
-  viewMenuParent: boolean;
-  viewMenu: {
-    daftarMenu: boolean;
-    kategoriMenu: boolean;
+  // View Inventory
+  viewInventoryParent: boolean;
+  viewInventory: {
+    summary: boolean;
+    supplier: boolean;
+    purchaseOrder: boolean;
   };
 
   // View Library
   viewLibraryParent: boolean;
   viewLibrary: {
-    bundles: boolean;
+    bundlePackage: boolean;
+    discounts: boolean;
     taxes: boolean;
     gratuity: boolean;
-    discount: boolean;
   };
 
   // View Modifier
   viewModifierParent: boolean;
   viewModifier: {
-    modifier: boolean;
-    category: boolean;
+    modifiersLibrary: boolean;
+    modifierCategory: boolean;
   };
 
   // View Ingredients
@@ -73,20 +71,18 @@ interface BackofficePermissions {
     recipes: boolean;
   };
 
-  // View Inventory
-  viewInventoryParent: boolean;
-  viewInventory: {
-    summary: boolean;
-    supplier: boolean;
-    purchaseOrder: boolean;
+  // View Menu
+  viewMenuParent: boolean;
+  viewMenu: {
+    menuList: boolean;
+    menuCategory: boolean;
   };
 
-  // View Rekap
-  viewRekapParent: boolean;
-  viewRekap: {
-    stokCafe: boolean;
-    stokGudang: boolean;
-    penjualan: boolean;
+  // View Recap
+  viewRecapParent: boolean;
+  viewRecap: {
+    stockCafe: boolean;
+    stockInventory: boolean;
   };
 
   // View Employees
@@ -97,9 +93,99 @@ interface BackofficePermissions {
   };
 }
 
+const DEFAULT_APP_PERMISSIONS: AppPermissions = {
+  cashier: false,
+  layoutCafe: false,
+  riwayat: false,
+  reservasi: false,
+};
+
+export const DEFAULT_BACKOFFICE_PERMISSIONS: BackofficePermissions = {
+  viewDashboard: false,
+
+  viewReportsParent: false,
+  viewReports: {
+    sales: false,
+    transactions: false,
+  },
+
+  viewInventoryParent: false,
+  viewInventory: {
+    summary: false,
+    supplier: false,
+    purchaseOrder: false,
+  },
+
+  viewLibraryParent: false,
+  viewLibrary: {
+    bundlePackage: false,
+    discounts: false,
+    taxes: false,
+    gratuity: false,
+  },
+
+  viewModifierParent: false,
+  viewModifier: {
+    modifiersLibrary: false,
+    modifierCategory: false,
+  },
+
+  viewIngredientsParent: false,
+  viewIngredients: {
+    ingredientsLibrary: false,
+    ingredientsCategory: false,
+    recipes: false,
+  },
+
+  viewMenuParent: false,
+  viewMenu: {
+    menuList: false,
+    menuCategory: false,
+  },
+
+  viewRecapParent: false,
+  viewRecap: {
+    stockCafe: false,
+    stockInventory: false,
+  },
+
+  viewEmployeesParent: false,
+  viewEmployees: {
+    employeeSlots: false,
+    employeeAccess: false,
+  },
+};
+
+
+function getMergedAppPermissions(p?: AppPermissions): AppPermissions {
+  return { ...DEFAULT_APP_PERMISSIONS, ...p };
+}
+
+export function getMergedBackofficePermissions(p?: Partial<BackofficePermissions>): BackofficePermissions {
+  return {
+    ...DEFAULT_BACKOFFICE_PERMISSIONS,
+    ...p,
+    viewReports: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewReports, ...(p?.viewReports || {}) },
+    viewInventory: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewInventory, ...(p?.viewInventory || {}) },
+    viewLibrary: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewLibrary, ...(p?.viewLibrary || {}) },
+    viewModifier: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewModifier, ...(p?.viewModifier || {}) },
+    viewIngredients: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewIngredients, ...(p?.viewIngredients || {}) },
+    viewMenu: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewMenu, ...(p?.viewMenu || {}) },
+    viewRecap: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewRecap, ...(p?.viewRecap || {}) },
+    viewEmployees: { ...DEFAULT_BACKOFFICE_PERMISSIONS.viewEmployees, ...(p?.viewEmployees || {}) },
+  };
+}
+
+function getDefaultPermissions() {
+  return {
+    app: getMergedAppPermissions(),
+    backoffice: getMergedBackofficePermissions(),
+  };
+}
+
+
 export default function EmployeeAccess() {
   const [roles, setRoles] = useState<RoleEmployee[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Kontrol side panel form (Create/Edit)
   const [showForm, setShowForm] = useState(false);
@@ -109,34 +195,10 @@ export default function EmployeeAccess() {
   // Role Name
   const [roleName, setRoleName] = useState("");
 
-  // App Permissions
-  const [appPermissions, setAppPermissions] = useState<AppPermissions>({
-    cashier: false,
-    layoutCafe: false,
-    riwayat: false,
-    reservasi: false,
-  });
-
-  // Backoffice Permissions
-  const [backofficePermissions, setBackofficePermissions] = useState<BackofficePermissions>({
-    viewDashboard: false,
-    viewReportsParent: false,
-    viewReports: { sales: false, transactions: false },
-    viewMenuParent: false,
-    viewMenu: { daftarMenu: false, kategoriMenu: false },
-    viewLibraryParent: false,
-    viewLibrary: { bundles: false, taxes: false, gratuity: false, discount: false },
-    viewModifierParent: false,
-    viewModifier: { modifier: false, category: false },
-    viewIngredientsParent: false,
-    viewIngredients: { ingredientsLibrary: false, ingredientsCategory: false, recipes: false },
-    viewInventoryParent: false,
-    viewInventory: { summary: false, supplier: false, purchaseOrder: false },
-    viewRekapParent: false,
-    viewRekap: { stokCafe: false, stokGudang: false, penjualan: false },
-    viewEmployeesParent: false,
-    viewEmployees: { employeeSlots: false, employeeAccess: false },
-  });
+  // App & Back permissions
+  const { app: initialApp, backoffice: initialBack } = getDefaultPermissions();
+  const [appPermissions, setAppPermissions] = useState<AppPermissions>(initialApp);
+  const [backofficePermissions, setBackofficePermissions] = useState<BackofficePermissions>(initialBack);
 
   // Kontrol side panel privileges (read-only)
   const [showPrivileges, setShowPrivileges] = useState(false);
@@ -166,74 +228,25 @@ export default function EmployeeAccess() {
     setShowForm(true);
     setIsEditMode(false);
     setEditingRoleId(null);
-
-    // Reset form
     setRoleName("");
-    setAppPermissions({
-      cashier: false,
-      layoutCafe: false,
-      riwayat: false,
-      reservasi: false,
-    });
-    setBackofficePermissions({
-      viewDashboard: false,
-      viewReportsParent: false,
-      viewReports: { sales: false, transactions: false },
-      viewMenuParent: false,
-      viewMenu: { daftarMenu: false, kategoriMenu: false },
-      viewLibraryParent: false,
-      viewLibrary: { bundles: false, taxes: false, gratuity: false, discount: false },
-      viewModifierParent: false,
-      viewModifier: { modifier: false, category: false },
-      viewIngredientsParent: false,
-      viewIngredients: { ingredientsLibrary: false, ingredientsCategory: false, recipes: false },
-      viewInventoryParent: false,
-      viewInventory: { summary: false, supplier: false, purchaseOrder: false },
-      viewRekapParent: false,
-      viewRekap: { stokCafe: false, stokGudang: false, penjualan: false },
-      viewEmployeesParent: false,
-      viewEmployees: { employeeSlots: false, employeeAccess: false },
-    });
+
+    const { app, backoffice } = getDefaultPermissions();
+    setAppPermissions(app);
+    setBackofficePermissions(backoffice);
   };
+
 
   // ===================== EDIT =====================
   const openEditForm = (role: RoleEmployee) => {
     setShowForm(true);
     setIsEditMode(true);
     setEditingRoleId(role.id);
-
-    // Muat data existing
     setRoleName(role.name);
-    setAppPermissions(
-      role.appPermissions || {
-        cashier: false,
-        layoutCafe: false,
-        riwayat: false,
-        reservasi: false,
-      }
-    );
-    setBackofficePermissions(
-      role.backofficePermissions || {
-        viewDashboard: false,
-        viewReportsParent: false,
-        viewReports: { sales: false, transactions: false },
-        viewMenuParent: false,
-        viewMenu: { daftarMenu: false, kategoriMenu: false },
-        viewLibraryParent: false,
-        viewLibrary: { bundles: false, taxes: false, gratuity: false, discount: false },
-        viewModifierParent: false,
-        viewModifier: { modifier: false, category: false },
-        viewIngredientsParent: false,
-        viewIngredients: { ingredientsLibrary: false, ingredientsCategory: false, recipes: false },
-        viewInventoryParent: false,
-        viewInventory: { summary: false, supplier: false, purchaseOrder: false },
-        viewRekapParent: false,
-        viewRekap: { stokCafe: false, stokGudang: false, penjualan: false },
-        viewEmployeesParent: false,
-        viewEmployees: { employeeSlots: false, employeeAccess: false },
-      }
-    );
+
+    setAppPermissions(getMergedAppPermissions(role.appPermissions));
+    setBackofficePermissions(getMergedBackofficePermissions(role.backofficePermissions));
   };
+
 
   // ===================== PRIVILEGES (READ-ONLY) =====================
   const openPrivileges = (role: RoleEmployee) => {
@@ -244,6 +257,19 @@ export default function EmployeeAccess() {
     setPrivilegesRole(null);
     setShowPrivileges(false);
   };
+  const renderPermissions: any = (obj: Record<string, any>, labelPrefix = "") => {
+    return Object.entries(obj).flatMap(([key, value]) => {
+      if (typeof value === "object" && value !== null) {
+        return renderPermissions(value, `${labelPrefix}${key}.`);
+      }
+      if (value) {
+        return <li key={labelPrefix + key}>{labelPrefix + key}</li>;
+      }
+      return [];
+    });
+  };
+
+
 
   // ===================== SUBMIT (CREATE/EDIT) =====================
   const handleSubmit = async (e: FormEvent) => {
@@ -287,101 +313,31 @@ export default function EmployeeAccess() {
   };
 
   // ===================== TOGGLE PARENT CHECKBOX =====================
-  const toggleReportsParent = (checked: boolean) => {
+  const toggleParentPermission = (
+    parentKey: keyof BackofficePermissions,
+    childrenKey: keyof Omit<BackofficePermissions, "viewDashboard">,
+    checked: boolean
+  ) => {
+    const treeItem = backofficePermissionTree.find(
+      (item) => item.parentKey === parentKey && item.type === "group" && item.childrenKey === childrenKey
+    );
+
+    if (!treeItem || !("children" in treeItem)) return;
+
+    const newChildrenState = Object.fromEntries(
+      treeItem.children.map((child) => [child.key, checked])
+    );
+
     setBackofficePermissions((prev) => ({
       ...prev,
-      viewReportsParent: checked,
-      viewReports: {
-        sales: checked,
-        transactions: checked,
-      },
+      [parentKey]: checked,
+      [childrenKey]: newChildrenState,
     }));
   };
 
-  const toggleMenuParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewMenuParent: checked,
-      viewMenu: {
-        daftarMenu: checked,
-        kategoriMenu: checked,
-      },
-    }));
-  };
-
-  const toggleLibraryParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewLibraryParent: checked,
-      viewLibrary: {
-        bundles: checked,
-        taxes: checked,
-        gratuity: checked,
-        discount: checked,
-      },
-    }));
-  };
-
-  const toggleModifierParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewModifierParent: checked,
-      viewModifier: { modifier: checked, category: checked },
-    }));
-  };
-
-  const toggleIngredientsParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewIngredientsParent: checked,
-      viewIngredients: {
-        ingredientsLibrary: checked,
-        ingredientsCategory: checked,
-        recipes: checked,
-      },
-    }));
-  };
-
-  const toggleInventoryParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewInventoryParent: checked,
-      viewInventory: {
-        summary: checked,
-        supplier: checked,
-        purchaseOrder: checked,
-      },
-    }));
-  };
-
-  const toggleRekapParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewRekapParent: checked,
-      viewRekap: {
-        stokCafe: checked,
-        stokGudang: checked,
-        penjualan: checked,
-      },
-    }));
-  };
-
-  const toggleEmployeesParent = (checked: boolean) => {
-    setBackofficePermissions((prev) => ({
-      ...prev,
-      viewEmployeesParent: checked,
-      viewEmployees: {
-        employeeSlots: checked,
-        employeeAccess: checked,
-      },
-    }));
-  };
 
   return (
     <div className="flex min-h-screen bg-white text-black">
-      {/* Toastify container */}
-      <ToastContainer />
-
       <div className={`flex-1 p-8 }`}>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">Employee Access</h1>
@@ -408,8 +364,7 @@ export default function EmployeeAccess() {
                     {role.employees && role.employees.length > 0 ? (
                       <ul className="list-disc list-inside">
                         {role.employees.map((emp) => (
-                          <li key={emp.id}>
-                            {emp.firstName} {emp.lastName}
+                          <li key={emp.id}> {emp.name}
                           </li>
                         ))}
                       </ul>
@@ -469,473 +424,73 @@ export default function EmployeeAccess() {
             <fieldset className="border rounded p-3">
               <legend className="font-semibold">Backoffice Permissions</legend>
 
-              {/* View Dashboard */}
-              <div className="mt-2">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={backofficePermissions.viewDashboard}
-                    onChange={(e) =>
-                      setBackofficePermissions({
-                        ...backofficePermissions,
-                        viewDashboard: e.target.checked,
-                      })
-                    }
-                  />{" "}
-                  View Dashboard
-                </label>
-              </div>
+              {backofficePermissionTree.map((section) => {
+                if (section.type === "group") {
+                  return (
+                    <div key={section.parentKey} className="mt-2">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={backofficePermissions[section.parentKey]}
+                          onChange={(e) =>
+                            toggleParentPermission(
+                              section.parentKey,
+                              section.childrenKey!,
+                              e.target.checked
+                            )
+                          }
+                        />
+                        {" "}<span className="font-medium">{section.label}</span>
+                      </label>
 
-              {/* View Reports */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewReportsParent} onChange={(e) => toggleReportsParent(e.target.checked)} /> <span className="font-medium">View Reports</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewReports.sales}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewReports: {
-                            ...prev.viewReports,
-                            sales: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Sales
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewReports.transactions}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewReports: {
-                            ...prev.viewReports,
-                            transactions: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Transactions
-                  </label>
-                </li>
-              </ul>
+                      <ul className="ml-6 list-disc space-y-1 mt-1">
+                        {section.children.map((child) => (
+                          <li key={child.key}>
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={(backofficePermissions[section.childrenKey!] as any)[child.key]}
+                                onChange={(e) =>
+                                  setBackofficePermissions((prev) => ({
+                                    ...prev,
+                                    [section.childrenKey!]: {
+                                      ...prev[section.childrenKey!],
+                                      [child.key]: e.target.checked,
+                                    },
+                                  }))
+                                }
+                              />
+                              {" "}{child.label}
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                }
 
-              {/* View Menu */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewMenuParent} onChange={(e) => toggleMenuParent(e.target.checked)} /> <span className="font-medium">View Menu</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewMenu.daftarMenu}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewMenu: {
-                            ...prev.viewMenu,
-                            daftarMenu: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Daftar Menu
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewMenu.kategoriMenu}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewMenu: {
-                            ...prev.viewMenu,
-                            kategoriMenu: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Kategori Menu
-                  </label>
-                </li>
-              </ul>
-
-              {/* View Library */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewLibraryParent} onChange={(e) => toggleLibraryParent(e.target.checked)} /> <span className="font-medium">View Library</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewLibrary.bundles}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewLibrary: {
-                            ...prev.viewLibrary,
-                            bundles: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Bundles
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewLibrary.taxes}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewLibrary: {
-                            ...prev.viewLibrary,
-                            taxes: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Taxes
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewLibrary.gratuity}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewLibrary: {
-                            ...prev.viewLibrary,
-                            gratuity: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Gratuity
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewLibrary.discount}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewLibrary: {
-                            ...prev.viewLibrary,
-                            discount: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Discount
-                  </label>
-                </li>
-              </ul>
-
-              {/* View Modifier */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewModifierParent} onChange={(e) => toggleModifierParent(e.target.checked)} /> <span className="font-medium">View Modifier</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewModifier.modifier}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewModifier: {
-                            ...prev.viewModifier,
-                            modifier: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Modifier
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewModifier.category}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewModifier: {
-                            ...prev.viewModifier,
-                            category: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Category
-                  </label>
-                </li>
-              </ul>
-
-              {/* View Ingredients */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewIngredientsParent} onChange={(e) => toggleIngredientsParent(e.target.checked)} /> <span className="font-medium">View Ingredients</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewIngredients.ingredientsLibrary}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewIngredients: {
-                            ...prev.viewIngredients,
-                            ingredientsLibrary: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Ingredients Library
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewIngredients.ingredientsCategory}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewIngredients: {
-                            ...prev.viewIngredients,
-                            ingredientsCategory: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Ingredients Category
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewIngredients.recipes}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewIngredients: {
-                            ...prev.viewIngredients,
-                            recipes: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Recipes
-                  </label>
-                </li>
-              </ul>
-
-              {/* View Inventory */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewInventoryParent} onChange={(e) => toggleInventoryParent(e.target.checked)} /> <span className="font-medium">View Inventory</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewInventory.summary}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewInventory: {
-                            ...prev.viewInventory,
-                            summary: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Summary
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewInventory.supplier}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewInventory: {
-                            ...prev.viewInventory,
-                            supplier: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Supplier
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewInventory.purchaseOrder}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewInventory: {
-                            ...prev.viewInventory,
-                            purchaseOrder: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Purchase Order
-                  </label>
-                </li>
-              </ul>
-
-              {/* View Rekap */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewRekapParent} onChange={(e) => toggleRekapParent(e.target.checked)} /> <span className="font-medium">View Rekap</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewRekap.stokCafe}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewRekap: {
-                            ...prev.viewRekap,
-                            stokCafe: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Rekap Stok Cafe
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewRekap.stokGudang}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewRekap: {
-                            ...prev.viewRekap,
-                            stokGudang: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Rekap Stok Gudang
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewRekap.penjualan}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewRekap: {
-                            ...prev.viewRekap,
-                            penjualan: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Rekap Penjualan
-                  </label>
-                </li>
-              </ul>
-
-              {/* View Employees */}
-              <div className="mt-2">
-                <label>
-                  <input type="checkbox" checked={backofficePermissions.viewEmployeesParent} onChange={(e) => toggleEmployeesParent(e.target.checked)} /> <span className="font-medium">View Employees</span>
-                </label>
-              </div>
-              <ul className="ml-6 list-disc space-y-1 mt-1">
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewEmployees.employeeSlots}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewEmployees: {
-                            ...prev.viewEmployees,
-                            employeeSlots: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Employee Slots
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={backofficePermissions.viewEmployees.employeeAccess}
-                      onChange={(e) =>
-                        setBackofficePermissions((prev) => ({
-                          ...prev,
-                          viewEmployees: {
-                            ...prev.viewEmployees,
-                            employeeAccess: e.target.checked,
-                          },
-                        }))
-                      }
-                    />{" "}
-                    Employee Access
-                  </label>
-                </li>
-              </ul>
+                // Untuk single checkbox seperti viewDashboard
+                return (
+                  <div key={section.parentKey} className="mt-2">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={backofficePermissions[section.parentKey]}
+                        onChange={(e) =>
+                          setBackofficePermissions((prev) => ({
+                            ...prev,
+                            [section.parentKey]: e.target.checked,
+                          }))
+                        }
+                      />
+                      {" "}{section.label}
+                    </label>
+                  </div>
+                );
+              })}
             </fieldset>
+
+
 
             <div className="flex justify-end space-x-2 mt-4">
               <button
@@ -980,111 +535,50 @@ export default function EmployeeAccess() {
           {/* Backoffice Permissions */}
           <div>
             <h3 className="font-semibold mb-2">Backoffice Permissions</h3>
-            {privilegesRole.backofficePermissions ? (
-              <div className="space-y-2 text-sm ml-4">
-                {/* View Dashboard */}
-                {privilegesRole.backofficePermissions.viewDashboard && <div>- View Dashboard</div>}
 
-                {/* View Reports */}
-                {(privilegesRole.backofficePermissions.viewReports.sales || privilegesRole.backofficePermissions.viewReports.transactions) && (
-                  <div>
-                    - View Reports:
+            {(() => {
+              const perms = privilegesRole.backofficePermissions;
+
+              // Cek apakah ada permission yang aktif
+              const hasAnyPermission = backofficePermissionTree.some((section) => {
+                if (section.type === "single") {
+                  return (perms as any)[section.parentKey];
+                }
+
+                return section.children.some(
+                  (child) => ((perms?.[section.childrenKey!] as any) ?? {})[child.key]
+                );
+              });
+
+              if (!hasAnyPermission) {
+                return <p className="text-gray-500">No Backoffice Permissions</p>;
+              }
+
+              return backofficePermissionTree.map((section) => {
+                if (section.type === "single") {
+                  return (perms as any)[section.parentKey] ? (
+                    <div key={section.parentKey}>- {section.label}</div>
+                  ) : null;
+                }
+
+                const activeChildren = section.children.filter(
+                  (child) => ((perms?.[section.childrenKey!] as any) ?? {})[child.key]
+                );
+
+                return activeChildren.length > 0 ? (
+                  <div key={section.parentKey}>
+                    - {section.label}
                     <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewReports.sales && <li>Sales</li>}
-                      {privilegesRole.backofficePermissions.viewReports.transactions && <li>Transactions</li>}
+                      {activeChildren.map((child) => (
+                        <li key={child.key}>{child.label}</li>
+                      ))}
                     </ul>
                   </div>
-                )}
-
-                {/* View Menu */}
-                {(privilegesRole.backofficePermissions.viewMenu.daftarMenu || privilegesRole.backofficePermissions.viewMenu.kategoriMenu) && (
-                  <div>
-                    - View Menu:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewMenu.daftarMenu && <li>Daftar Menu</li>}
-                      {privilegesRole.backofficePermissions.viewMenu.kategoriMenu && <li>Kategori Menu</li>}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Library */}
-                {(privilegesRole.backofficePermissions.viewLibrary.bundles ||
-                  privilegesRole.backofficePermissions.viewLibrary.taxes ||
-                  privilegesRole.backofficePermissions.viewLibrary.gratuity ||
-                  privilegesRole.backofficePermissions.viewLibrary.discount) && (
-                  <div>
-                    - View Library:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewLibrary.bundles && <li>Bundles</li>}
-                      {privilegesRole.backofficePermissions.viewLibrary.taxes && <li>Taxes</li>}
-                      {privilegesRole.backofficePermissions.viewLibrary.gratuity && <li>Gratuity</li>}
-                      {privilegesRole.backofficePermissions.viewLibrary.discount && <li>Discount</li>}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Modifier */}
-                {(privilegesRole.backofficePermissions.viewModifier.modifier || privilegesRole.backofficePermissions.viewModifier.category) && (
-                  <div>
-                    - View Modifier:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewModifier.modifier && <li>Modifier</li>}
-                      {privilegesRole.backofficePermissions.viewModifier.category && <li>Category</li>}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Ingredients */}
-                {(privilegesRole.backofficePermissions.viewIngredients.ingredientsLibrary || privilegesRole.backofficePermissions.viewIngredients.ingredientsCategory || privilegesRole.backofficePermissions.viewIngredients.recipes) && (
-                  <div>
-                    - View Ingredients:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewIngredients.ingredientsLibrary && <li>Ingredients Library</li>}
-                      {privilegesRole.backofficePermissions.viewIngredients.ingredientsCategory && <li>Ingredients Category</li>}
-                      {privilegesRole.backofficePermissions.viewIngredients.recipes && <li>Recipes</li>}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Inventory */}
-                {(privilegesRole.backofficePermissions.viewInventory.summary || privilegesRole.backofficePermissions.viewInventory.supplier || privilegesRole.backofficePermissions.viewInventory.purchaseOrder) && (
-                  <div>
-                    - View Inventory:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewInventory.summary && <li>Summary</li>}
-                      {privilegesRole.backofficePermissions.viewInventory.supplier && <li>Supplier</li>}
-                      {privilegesRole.backofficePermissions.viewInventory.purchaseOrder && <li>Purchase Order</li>}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Rekap */}
-                {(privilegesRole.backofficePermissions.viewRekap.stokCafe || privilegesRole.backofficePermissions.viewRekap.stokGudang || privilegesRole.backofficePermissions.viewRekap.penjualan) && (
-                  <div>
-                    - View Rekap:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewRekap.stokCafe && <li>Rekap Stok Cafe</li>}
-                      {privilegesRole.backofficePermissions.viewRekap.stokGudang && <li>Rekap Stok Gudang</li>}
-                      {privilegesRole.backofficePermissions.viewRekap.penjualan && <li>Rekap Penjualan</li>}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Employees */}
-                {(privilegesRole.backofficePermissions.viewEmployees.employeeSlots || privilegesRole.backofficePermissions.viewEmployees.employeeAccess) && (
-                  <div>
-                    - View Employees:
-                    <ul className="list-disc list-inside ml-4">
-                      {privilegesRole.backofficePermissions.viewEmployees.employeeSlots && <li>Employee Slots</li>}
-                      {privilegesRole.backofficePermissions.viewEmployees.employeeAccess && <li>Employee Access</li>}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500">No Backoffice Permissions</p>
-            )}
+                ) : null;
+              });
+            })()}
           </div>
+
 
           <div className="flex justify-end mt-6">
             <button onClick={() => setShowPrivileges(false)} className="px-4 py-2 border rounded hover:bg-gray-100">

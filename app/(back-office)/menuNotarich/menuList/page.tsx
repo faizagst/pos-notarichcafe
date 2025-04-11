@@ -188,7 +188,7 @@ export default function ManagerMenusPage() {
                   </td>
                   <td className="px-6 py-4">
                     {menu.ingredients.map((item, index) => (
-                      <span key={item.id}>
+                      <span key={item.ingredient.id}>
                         {item.ingredient.name} ({item.amount}{item.ingredient.unit})
                         {index < menu.ingredients.length - 1 && ", "}
                       </span>
@@ -397,7 +397,7 @@ export default function ManagerMenusPage() {
           setIngredientRows(rows);
           }
           if (data.menu.modifiers && Array.isArray(data.menu.modifiers)) {
-            const modifierIds = data.menu.modifiers.map((mod: any) => mod.modifier.id);
+            const modifierIds = data.menu.modifiers.map((mod: any) => mod.modifierId);
           setSelectedModifierIds(modifierIds);
           }
           if (data.menu.discounts && data.menu.discounts.length > 0) {

@@ -182,10 +182,10 @@ export default function GudangTable() {
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : (
-        <div className="overflow-x-auto max-h-[450px]">
+        <div className="overflow-x-auto max-h-[456px]">
           <table className="min-w-full border-collapse bg-white border border-gray-200">
             <thead className="sticky top-0 bg-white z-50">
-              <tr>
+              <tr style={{ height: '60px' }}>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   No
                 </th>
@@ -224,7 +224,8 @@ export default function GudangTable() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredGudang.map((item, index) => (
-                <tr key={item.id} className="text-center">
+                <tr key={item.id} className="text-center"
+                style={{ height: '56px' }}>
                   <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {item.ingredientId}

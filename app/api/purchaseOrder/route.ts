@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
       const nextDate = new Date(selectedDate);
       nextDate.setDate(nextDate.getDate() + 1);
 
-      const [purchaseOrders] = await db.execute(
+      const [rows]: any = await db.execute(
         `
-        SELECT po.*, i.name AS ingredientName, i.unit
+        SELECT po.id, po.quantity, po.totalPrice, po.createdAt, 
+               i.name AS ingredientName, i.unit
         FROM purchaseOrder po
         JOIN ingredient i ON po.ingredientId = i.id
         WHERE po.createdAt >= ? AND po.createdAt < ?
@@ -23,7 +24,18 @@ export async function POST(req: NextRequest) {
         [selectedDate, nextDate]
       );
 
-      return NextResponse.json(purchaseOrders);
+      // Format agar sesuai frontend
+      const formatted = rows.map((po: any) => ({
+        id: po.id,
+        quantity: po.quantity,
+        totalPrice: po.totalPrice,
+        createdAt: po.createdAt,
+        ingredient: {
+          name: po.ingredientName,
+          unit: po.unit,
+        },
+      }));
+      return NextResponse.json(formatted);
     }
 
     // Jika data lengkap untuk membuat purchase order

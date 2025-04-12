@@ -14,6 +14,7 @@
         "argon2": "^0.41.1",
         "chart.js": "^4.4.7",
         "class-variance-authority": "^0.7.1",
+        "date-fns": "^4.1.0",
         "file-saver": "^2.0.5",
         "formidable": "^3.5.2",
         "jspdf": "^3.0.1",
@@ -30,6 +31,7 @@
         "react-hot-toast": "^2.5.2",
         "react-icons": "^5.5.0",
         "react-toastify": "^11.0.5",
+        "recharts": "^2.15.2",
         "tailwind-merge": "^3.0.1",
         "xlsx": "^0.18.5"
     },

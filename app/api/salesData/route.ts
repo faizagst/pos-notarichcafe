@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
+import { format } from 'date-fns-tz';
 
 interface SalesData {
   date: string;
@@ -21,7 +22,7 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
 
   while (current <= end) {
     if (period === 'daily') {
-      result.push(current.toISOString().split('T')[0]);
+      result.push(format(current, 'yyyy-MM-dd', { timeZone: 'Asia/Jakarta' }));
       current.setDate(current.getDate() + 1);
     } else if (period === 'weekly') {
       const year = current.getFullYear();
@@ -29,10 +30,10 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
       result.push(`${year}-W${String(week).padStart(2, '0')}`);
       current.setDate(current.getDate() + 7);
     } else if (period === 'monthly') {
-      result.push(`${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`);
+      result.push(format(current, 'yyyy-MM', { timeZone: 'Asia/Jakarta' }));
       current.setMonth(current.getMonth() + 1);
     } else if (period === 'yearly') {
-      result.push(`${current.getFullYear()}`);
+      result.push(format(current, 'yyyy', { timeZone: 'Asia/Jakarta' }));
       current.setFullYear(current.getFullYear() + 1);
     }
   }
@@ -86,8 +87,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (startDate) {
+    startDate.setHours(0, 0, 0, 0); // Set ke awal hari
+    startDate.setMinutes(startDate.getMinutes() + 420); // Tambah 7 jam untuk WIB
+  }
+
   if (endDate) {
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 999); // Set ke akhir hari
+    endDate.setMinutes(endDate.getMinutes() + 420); // Tambah 7 jam untuk WIB
   }
 
   let query = '';
@@ -95,7 +102,7 @@ export async function GET(req: NextRequest) {
     switch (period) {
       case 'daily':
         query = `
-          SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y-%m-%d') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)
@@ -106,7 +113,7 @@ export async function GET(req: NextRequest) {
 
       case 'weekly':
         query = `
-          SELECT DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-W%v') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(CONVERT_TZ(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '+00:00', '+07:00'), '%Y-W%v') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)
@@ -117,7 +124,7 @@ export async function GET(req: NextRequest) {
 
       case 'monthly':
         query = `
-          SELECT DATE_FORMAT(createdAt, '%Y-%m') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y-%m') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)
@@ -128,7 +135,7 @@ export async function GET(req: NextRequest) {
 
       case 'yearly':
         query = `
-          SELECT DATE_FORMAT(createdAt, '%Y') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)

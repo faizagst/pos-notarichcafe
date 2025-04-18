@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { backofficePermissionTree } from "@/lib/backofficePermissionTree";
+import { appPermissionTree } from "@/lib/appPermissionTree";
 import toast from "react-hot-toast";
 
 interface EmployeeAssigned {
@@ -22,9 +23,8 @@ interface RoleEmployee {
 // Struktur data untuk App Permissions
 interface AppPermissions {
   cashier: boolean;
-  layoutCafe: boolean;
+  menu: boolean;
   riwayat: boolean;
-  reservasi: boolean;
 }
 
 // Struktur data untuk Backoffice Permissions dengan parent checkbox
@@ -95,9 +95,8 @@ interface BackofficePermissions {
 
 const DEFAULT_APP_PERMISSIONS: AppPermissions = {
   cashier: false,
-  layoutCafe: false,
+  menu: false,
   riwayat: false,
-  reservasi: false,
 };
 
 export const DEFAULT_BACKOFFICE_PERMISSIONS: BackofficePermissions = {
@@ -405,19 +404,23 @@ export default function EmployeeAccess() {
             <fieldset className="border rounded p-3">
               <legend className="font-semibold">App Permissions</legend>
               <div className="flex flex-col mt-2 space-y-2">
-                <label>
-                  <input type="checkbox" checked={appPermissions.cashier} onChange={(e) => setAppPermissions({ ...appPermissions, cashier: e.target.checked })} /> Cashier
-                </label>
-                <label>
-                  <input type="checkbox" checked={appPermissions.layoutCafe} onChange={(e) => setAppPermissions({ ...appPermissions, layoutCafe: e.target.checked })} /> Layout Cafe
-                </label>
-                <label>
-                  <input type="checkbox" checked={appPermissions.riwayat} onChange={(e) => setAppPermissions({ ...appPermissions, riwayat: e.target.checked })} /> Riwayat
-                </label>
-                <label>
-                  <input type="checkbox" checked={appPermissions.reservasi} onChange={(e) => setAppPermissions({ ...appPermissions, reservasi: e.target.checked })} /> Reservasi
-                </label>
+                {appPermissionTree.map((item) => (
+                  <label key={item.key}>
+                    <input
+                      type="checkbox"
+                      checked={appPermissions[item.key]}
+                      onChange={(e) =>
+                        setAppPermissions((prev) => ({
+                          ...prev,
+                          [item.key]: e.target.checked,
+                        }))
+                      }
+                    />{" "}
+                    {item.label}
+                  </label>
+                ))}
               </div>
+
             </fieldset>
 
             {/* Backoffice Permissions */}
@@ -520,16 +523,17 @@ export default function EmployeeAccess() {
           {/* App Permissions */}
           <div className="mb-4">
             <h3 className="font-semibold mb-2">App Permissions</h3>
-            {privilegesRole.appPermissions ? (
+            {privilegesRole.appPermissions &&
+              appPermissionTree.some((item) => privilegesRole.appPermissions?.[item.key]) ? (
               <ul className="list-disc list-inside ml-4">
-                {privilegesRole.appPermissions.cashier && <li>Cashier</li>}
-                {privilegesRole.appPermissions.layoutCafe && <li>Layout Cafe</li>}
-                {privilegesRole.appPermissions.riwayat && <li>Riwayat</li>}
-                {privilegesRole.appPermissions.reservasi && <li>Reservasi</li>}
+                {appPermissionTree.map((item) =>
+                  privilegesRole.appPermissions?.[item.key] ? <li key={item.key}>{item.label}</li> : null
+                )}
               </ul>
             ) : (
               <p className="text-gray-500">No App Permissions</p>
             )}
+
           </div>
 
           {/* Backoffice Permissions */}

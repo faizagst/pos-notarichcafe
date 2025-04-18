@@ -3,16 +3,20 @@
 import { useState, FormEvent } from "react";
 import { LucideEye, LucideEyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { useRouter } from "next/navigation"; // Import useRouter for navigation
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState(""); // Using username
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  const router = useRouter(); // Initialize router
+  const [permissions, setPermissions] = useState<{
+    backofficePermissions: Record<string, any>;
+    appPermissions: Record<string, boolean>;
+  } | null>(null);
+
+  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,18 +30,91 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, password }),
+        credentials: "include", // Ini penting agar cookie HttpOnly dikirim
       });
+
       const data = await res.json();
 
       if (res.ok) {
-        console.log("Login successful:", data);
-        // Save user data to sessionStorage
-        sessionStorage.setItem("user", JSON.stringify(data.user));
-        // Redirect to dashboard
-        router.push("/dashboard");
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          const userPermissions = {
+            backofficePermissions: data.user?.backofficePermissions || {},
+            appPermissions: data.user?.appPermissions || {},
+          };
+          const permissionRedirectMap: { permissionPath: string; redirectPath: string }[] = [
+
+            // 💵 Dashboard
+            { permissionPath: 'backofficePermissions.viewDashboard', redirectPath: '/dashboard' },
+
+            // 📊 Reports
+            { permissionPath: 'backofficePermissions.viewReports.sales', redirectPath: '/reports/sales/summary' },
+            { permissionPath: 'backofficePermissions.viewReports.transactions', redirectPath: '/reports/transactions' },
+
+            // 📦 Inventory
+            { permissionPath: 'backofficePermissions.viewInventory.summary', redirectPath: '/inventory/summary' },
+            { permissionPath: 'backofficePermissions.viewInventory.supplier', redirectPath: '/inventory/supplier' },
+            { permissionPath: 'backofficePermissions.viewInventory.purchaseOrder', redirectPath: '/inventory/purchaseOrder' },
+
+            // 🧾 Library
+            { permissionPath: 'backofficePermissions.viewLibrary.bundlePackage', redirectPath: '/library/bundle_package' },
+            { permissionPath: 'backofficePermissions.viewLibrary.discounts', redirectPath: '/library/discounts' },
+            { permissionPath: 'backofficePermissions.viewLibrary.taxes', redirectPath: '/library/taxes' },
+            { permissionPath: 'backofficePermissions.viewLibrary.gratuity', redirectPath: '/library/gratuity' },
+
+            // 🧂 Modifiers
+            { permissionPath: 'backofficePermissions.viewModifier.modifiersLibrary', redirectPath: '/modifiers/modifiersLibrary' },
+            { permissionPath: 'backofficePermissions.viewModifier.modifierCategory', redirectPath: '/modifiers/modifierCategory' },
+
+            // 🍳 Ingredients
+            { permissionPath: 'backofficePermissions.viewIngredients.ingredientsLibrary', redirectPath: '/ingredients/ingredientsLibrary' },
+            { permissionPath: 'backofficePermissions.viewIngredients.ingredientsCategory', redirectPath: '/ingredients/ingredientCategory' },
+            { permissionPath: 'backofficePermissions.viewIngredients.recipes', redirectPath: '/ingredients/recipes' },
+
+            // 🍽 Menu
+            { permissionPath: 'backofficePermissions.viewMenu.menuList', redirectPath: '/menuNotarich/menuList' },
+            { permissionPath: 'backofficePermissions.viewMenu.menuCategory', redirectPath: '/menuNotarich/menuCategory' },
+
+            // 🧑‍💼 Recap
+            { permissionPath: 'backofficePermissions.viewRecap.stockCafe', redirectPath: '/recapNotarich/stockCafe' },
+            { permissionPath: 'backofficePermissions.viewRecap.stockInventory', redirectPath: '/recapNotarich/stockInventory' },
+
+            // 👑 Employee
+            { permissionPath: 'backofficePermissions.viewEmployees.employeeSlots', redirectPath: '/employee/employee_slots' },
+            { permissionPath: 'backofficePermissions.viewEmployees.employeeAccess', redirectPath: '/employee/employee_access' },
+
+            // 🧑‍🍳 Kasir (App/Cashier)
+            { permissionPath: 'appPermissions.cashier', redirectPath: '/cashier' },
+            { permissionPath: 'appPermissions.menu', redirectPath: '/cashier/menu' },
+            { permissionPath: 'appPermissions.riwayat', redirectPath: '/cashier/riwayat' },
+          ];
+
+
+          let redirectPath = '/unauthorized';
+          for (const item of permissionRedirectMap) {
+            const keys = item.permissionPath.split('.');
+            let value: any = userPermissions;
+
+            for (const key of keys) {
+              if (!value) break;
+              value = value[key];
+            }
+
+            if (value === true) {
+              redirectPath = item.redirectPath;
+              break;
+            }
+          }
+
+          router.push(redirectPath);
+        } else {
+          setErrorMessage(data.message || "Login failed");
+        }
       } else {
-        setErrorMessage(data.message || "Login failed");
+        console.error('Failed to fetch permissions');
       }
+
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage("An error occurred while logging in.");
@@ -56,13 +133,6 @@ export default function LoginPage() {
           ✕
         </button>
         <h2 className="text-2xl font-bold text-center mb-4 text-black">Log In</h2>
-        <p className="text-sm text-center text-gray-600 mb-6">
-          Don’t have an account?{" "}
-          <a href="/register" className="text-blue-500">
-            Create an account
-          </a>
-        </p>
-
         {errorMessage && (
           <p className="text-center text-red-500 mb-4">{errorMessage}</p>
         )}

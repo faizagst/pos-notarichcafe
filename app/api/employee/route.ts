@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const { firstName, lastName, email, phone, roleId, expiredDate } = await req.json();
     const inviteToken = crypto.randomBytes(16).toString("hex");
     const inviteExpiresAt = new Date();
-    inviteExpiresAt.setMinutes(inviteExpiresAt.getMinutes() + 5);
+    inviteExpiresAt.setHours(inviteExpiresAt.getMinutes() + 24);
 
     const [result]: any = await db.query(
       "INSERT INTO employee (firstName, lastName, email, phone, roleId, expiredDate, inviteToken, inviteExpiresAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())",
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     );
 
     if (email) {
-      const registerLink = `http://localhost:3000/register?token=${inviteToken}`;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+      const registerLink = `${baseUrl}/register?token=${inviteToken}`;
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
@@ -56,9 +57,16 @@ export async function PUT(req: NextRequest) {
   try {
     const { id, firstName, lastName, email, phone, roleId, expiredDate } = await req.json();
 
+    // Update employee data
     await db.query(
       "UPDATE employee SET firstName = ?, lastName = ?, email = ?, phone = ?, roleId = ?, expiredDate = ?, updatedAt = NOW() WHERE id = ?",
       [firstName, lastName, email, phone, roleId, new Date(expiredDate), id]
+    );
+
+    // Update related user role
+    await db.query(
+      "UPDATE user SET roleId = ? WHERE employeeId = ?",
+      [roleId, id]
     );
 
     return NextResponse.json({ id, firstName, lastName, email, phone, roleId, expiredDate }, { status: 200 });
@@ -67,6 +75,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Error updating employee" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: NextRequest) {
   try {

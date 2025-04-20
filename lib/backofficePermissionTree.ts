@@ -76,6 +76,7 @@ export const backofficePermissionTree = [
       children: [
         { key: "stockCafe", label: "Stock Cafe" },
         { key: "stockInventory", label: "Stock Inventory" },
+        { key: "prediction", label: "Stock Prediction" },
       ],
     },
     {

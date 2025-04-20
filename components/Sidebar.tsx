@@ -237,6 +237,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle, role }) => {
           link: "/recapNotarich/stockInventory",
           permissionPath: "backofficePermissions.viewRecap.stockInventory",
         },
+        {
+          name: "Stock Prediction",
+          link: "/recapNotarich/prediction",
+          permissionPath: "backofficePermissions.viewRecap.prediction",
+        },
       ],
     },
     {

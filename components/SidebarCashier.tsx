@@ -39,6 +39,7 @@ const backofficeRoutes: Record<string, string> = {
   "/menuNotarich/menuCategory": "backofficePermissions.viewMenu.menuCategory",
   "/recapNotarich/stockCafe": "backofficePermissions.viewRecap.stockCafe",
   "/recapNotarich/stockInventory": "backofficePermissions.viewRecap.stockInventory",
+  "/recapNotarich/prediction": "backofficePermissions.viewRecap.prediction",
   "/employee/employee_slots": "backofficePermissions.viewEmployees.employeeSlots",
   "/employee/employee_access": "backofficePermissions.viewEmployees.employeeAccess",
 };

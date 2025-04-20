@@ -143,7 +143,9 @@ export default function RegisterPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center p-4" style={{ backgroundImage: "url('/login2.png')" }}>
       <div className="relative w-full max-w-md p-6 bg-white bg-opacity-80 rounded-lg shadow-lg md:max-w-lg lg:max-w-xl">
-        <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
+      <div className="text-center mb-1">
+          <img src="/logo-notarich-transparent.png" alt="Logo" className="mx-auto h-24" />
+        </div>
         <h2 className="text-2xl font-bold text-center mb-4 text-black">Register</h2>
         <p className="text-sm text-center text-gray-600 mb-6">
           Already have an account?{" "}
@@ -217,10 +219,7 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="my-4 text-center text-gray-500">OR</div>
-        <button className="text-black w-full flex items-center justify-center p-2 border rounded-lg hover:bg-gray-200 transition">
-          <FcGoogle className="text-xl mr-2" /> Register with Google
-        </button>
+        <div className="my-4 text-center text-gray-500">@Notarich Cafe 2025</div>
       </div>
     </div>
   );

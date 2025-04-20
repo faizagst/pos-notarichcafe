@@ -2,7 +2,6 @@
 
 import { useState, FormEvent } from "react";
 import { LucideEye, LucideEyeOff } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -24,7 +23,7 @@ export default function LoginPage() {
     setErrorMessage("");
 
     try {
-      const res = await fetch("/api/login", {
+      const loginRes = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,88 +32,92 @@ export default function LoginPage() {
         credentials: "include", // Ini penting agar cookie HttpOnly dikirim
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          const userPermissions = {
-            backofficePermissions: data.user?.backofficePermissions || {},
-            appPermissions: data.user?.appPermissions || {},
-          };
-          const permissionRedirectMap: { permissionPath: string; redirectPath: string }[] = [
-
-            // 💵 Dashboard
-            { permissionPath: 'backofficePermissions.viewDashboard', redirectPath: '/dashboard' },
-
-            // 📊 Reports
-            { permissionPath: 'backofficePermissions.viewReports.sales', redirectPath: '/reports/sales/summary' },
-            { permissionPath: 'backofficePermissions.viewReports.transactions', redirectPath: '/reports/transactions' },
-
-            // 📦 Inventory
-            { permissionPath: 'backofficePermissions.viewInventory.summary', redirectPath: '/inventory/summary' },
-            { permissionPath: 'backofficePermissions.viewInventory.supplier', redirectPath: '/inventory/supplier' },
-            { permissionPath: 'backofficePermissions.viewInventory.purchaseOrder', redirectPath: '/inventory/purchaseOrder' },
-
-            // 🧾 Library
-            { permissionPath: 'backofficePermissions.viewLibrary.bundlePackage', redirectPath: '/library/bundle_package' },
-            { permissionPath: 'backofficePermissions.viewLibrary.discounts', redirectPath: '/library/discounts' },
-            { permissionPath: 'backofficePermissions.viewLibrary.taxes', redirectPath: '/library/taxes' },
-            { permissionPath: 'backofficePermissions.viewLibrary.gratuity', redirectPath: '/library/gratuity' },
-
-            // 🧂 Modifiers
-            { permissionPath: 'backofficePermissions.viewModifier.modifiersLibrary', redirectPath: '/modifiers/modifiersLibrary' },
-            { permissionPath: 'backofficePermissions.viewModifier.modifierCategory', redirectPath: '/modifiers/modifierCategory' },
-
-            // 🍳 Ingredients
-            { permissionPath: 'backofficePermissions.viewIngredients.ingredientsLibrary', redirectPath: '/ingredients/ingredientsLibrary' },
-            { permissionPath: 'backofficePermissions.viewIngredients.ingredientsCategory', redirectPath: '/ingredients/ingredientCategory' },
-            { permissionPath: 'backofficePermissions.viewIngredients.recipes', redirectPath: '/ingredients/recipes' },
-
-            // 🍽 Menu
-            { permissionPath: 'backofficePermissions.viewMenu.menuList', redirectPath: '/menuNotarich/menuList' },
-            { permissionPath: 'backofficePermissions.viewMenu.menuCategory', redirectPath: '/menuNotarich/menuCategory' },
-
-            // 🧑‍💼 Recap
-            { permissionPath: 'backofficePermissions.viewRecap.stockCafe', redirectPath: '/recapNotarich/stockCafe' },
-            { permissionPath: 'backofficePermissions.viewRecap.stockInventory', redirectPath: '/recapNotarich/stockInventory' },
-
-            // 👑 Employee
-            { permissionPath: 'backofficePermissions.viewEmployees.employeeSlots', redirectPath: '/employee/employee_slots' },
-            { permissionPath: 'backofficePermissions.viewEmployees.employeeAccess', redirectPath: '/employee/employee_access' },
-
-            // 🧑‍🍳 Kasir (App/Cashier)
-            { permissionPath: 'appPermissions.cashier', redirectPath: '/cashier' },
-            { permissionPath: 'appPermissions.menu', redirectPath: '/cashier/menu' },
-            { permissionPath: 'appPermissions.riwayat', redirectPath: '/cashier/riwayat' },
-          ];
-
-
-          let redirectPath = '/unauthorized';
-          for (const item of permissionRedirectMap) {
-            const keys = item.permissionPath.split('.');
-            let value: any = userPermissions;
-
-            for (const key of keys) {
-              if (!value) break;
-              value = value[key];
-            }
-
-            if (value === true) {
-              redirectPath = item.redirectPath;
-              break;
-            }
-          }
-
-          router.push(redirectPath);
-        } else {
-          setErrorMessage(data.message || "Login failed");
-        }
-      } else {
-        console.error('Failed to fetch permissions');
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) {
+        setErrorMessage(loginData.message || "Invalid username or password.");
+        setLoading(false);
+        return;
       }
 
+      const meRes = await fetch("/api/auth/me", { credentials: "include" });
+
+      if (!meRes.ok) {
+        setErrorMessage("Failed to fetch user permissions.");
+        setLoading(false);
+        return;
+      }
+
+      const meData = await meRes.json();
+
+      const userPermissions = {
+        backofficePermissions: meData.user?.backofficePermissions || {},
+        appPermissions: meData.user?.appPermissions || {},
+      };
+
+      const permissionRedirectMap: { permissionPath: string; redirectPath: string }[] = [
+
+        // 💵 Dashboard
+        { permissionPath: 'backofficePermissions.viewDashboard', redirectPath: '/dashboard' },
+
+        // 📊 Reports
+        { permissionPath: 'backofficePermissions.viewReports.sales', redirectPath: '/reports/sales/summary' },
+        { permissionPath: 'backofficePermissions.viewReports.transactions', redirectPath: '/reports/transactions' },
+
+        // 📦 Inventory
+        { permissionPath: 'backofficePermissions.viewInventory.summary', redirectPath: '/inventory/summary' },
+        { permissionPath: 'backofficePermissions.viewInventory.supplier', redirectPath: '/inventory/supplier' },
+        { permissionPath: 'backofficePermissions.viewInventory.purchaseOrder', redirectPath: '/inventory/purchaseOrder' },
+
+        // 🧾 Library
+        { permissionPath: 'backofficePermissions.viewLibrary.bundlePackage', redirectPath: '/library/bundle_package' },
+        { permissionPath: 'backofficePermissions.viewLibrary.discounts', redirectPath: '/library/discounts' },
+        { permissionPath: 'backofficePermissions.viewLibrary.taxes', redirectPath: '/library/taxes' },
+        { permissionPath: 'backofficePermissions.viewLibrary.gratuity', redirectPath: '/library/gratuity' },
+
+        // 🧂 Modifiers
+        { permissionPath: 'backofficePermissions.viewModifier.modifiersLibrary', redirectPath: '/modifiers/modifiersLibrary' },
+        { permissionPath: 'backofficePermissions.viewModifier.modifierCategory', redirectPath: '/modifiers/modifierCategory' },
+
+        // 🍳 Ingredients
+        { permissionPath: 'backofficePermissions.viewIngredients.ingredientsLibrary', redirectPath: '/ingredients/ingredientsLibrary' },
+        { permissionPath: 'backofficePermissions.viewIngredients.ingredientsCategory', redirectPath: '/ingredients/ingredientCategory' },
+        { permissionPath: 'backofficePermissions.viewIngredients.recipes', redirectPath: '/ingredients/recipes' },
+
+        // 🍽 Menu
+        { permissionPath: 'backofficePermissions.viewMenu.menuList', redirectPath: '/menuNotarich/menuList' },
+        { permissionPath: 'backofficePermissions.viewMenu.menuCategory', redirectPath: '/menuNotarich/menuCategory' },
+
+        // 🧑‍💼 Recap
+        { permissionPath: 'backofficePermissions.viewRecap.stockCafe', redirectPath: '/recapNotarich/stockCafe' },
+        { permissionPath: 'backofficePermissions.viewRecap.stockInventory', redirectPath: '/recapNotarich/stockInventory' },
+
+        // 👑 Employee
+        { permissionPath: 'backofficePermissions.viewEmployees.employeeSlots', redirectPath: '/employee/employee_slots' },
+        { permissionPath: 'backofficePermissions.viewEmployees.employeeAccess', redirectPath: '/employee/employee_access' },
+
+        // 🧑‍🍳 Kasir (App/Cashier)
+        { permissionPath: 'appPermissions.cashier', redirectPath: '/cashier' },
+        { permissionPath: 'appPermissions.menu', redirectPath: '/cashier/menu' },
+        { permissionPath: 'appPermissions.riwayat', redirectPath: '/cashier/riwayat' },
+      ];
+
+      let redirectPath = "/unauthorized";
+      for (const item of permissionRedirectMap) {
+        const keys = item.permissionPath.split(".");
+        let value: any = userPermissions;
+
+        for (const key of keys) {
+          if (!value) break;
+          value = value[key];
+        }
+
+        if (value === true) {
+          redirectPath = item.redirectPath;
+          break;
+        }
+      }
+
+      router.push(redirectPath);
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage("An error occurred while logging in.");
@@ -129,14 +132,15 @@ export default function LoginPage() {
       style={{ backgroundImage: "url('/login2.png')" }}
     >
       <div className="relative w-full max-w-md p-6 bg-white bg-opacity-80 rounded-lg shadow-lg md:max-w-lg lg:max-w-xl">
-        <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
-          ✕
-        </button>
+        {/* Logo */}
+        <div className="text-center mb-1">
+          <img src="/logo-notarich-transparent.png" alt="Logo" className="mx-auto h-24" />
+        </div>
         <h2 className="text-2xl font-bold text-center mb-4 text-black">Log In</h2>
         {errorMessage && (
           <p className="text-center text-red-500 mb-4">{errorMessage}</p>
         )}
-
+  
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
@@ -177,11 +181,9 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
-        <div className="my-4 text-center text-gray-500">OR</div>
-        <button className="text-black w-full flex items-center justify-center p-2 border rounded-lg hover:bg-gray-200 transition">
-          <FcGoogle className="text-xl mr-2" /> Log In with Google
-        </button>
+        <div className="my-4 text-center text-gray-500">@Notarich Cafe 2025</div>
       </div>
     </div>
   );
+  
 }

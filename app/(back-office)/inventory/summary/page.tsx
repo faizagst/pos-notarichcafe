@@ -129,7 +129,7 @@ export default function GudangTable() {
       const result = await res.json();
       toast.success(result.message);
       if (res.ok) {
-        router.push("/manager/rekapStokCafe");
+        router.push("/recapNotarich/stockInventory");
       }
     } catch (error) {
       console.error("Error resetting daily stock:", error);

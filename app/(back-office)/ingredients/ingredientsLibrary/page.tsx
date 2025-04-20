@@ -360,7 +360,7 @@ export default function IngredientsTable() {
 
       toast.success(result.message);
       if (res.ok) {
-        router.push("/manager/rekapStokCafe");
+        router.push("/recapNotarich/stockCafe");
       }
     } catch (error) {
       console.error("Error resetting daily stock:", error);

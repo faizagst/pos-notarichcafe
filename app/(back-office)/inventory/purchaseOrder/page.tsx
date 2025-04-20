@@ -164,6 +164,7 @@ const PurchaseOrderForm: React.FC = () => {
                 value={form.quantity}
                 onChange={handleInputChange}
                 required
+                min={1}
                 className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -177,6 +178,7 @@ const PurchaseOrderForm: React.FC = () => {
                 value={form.totalPrice}
                 onChange={handleInputChange}
                 required
+                min={1}
                 className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { LucideEye, LucideEyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -10,12 +10,77 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [permissions, setPermissions] = useState<{
-    backofficePermissions: Record<string, any>;
-    appPermissions: Record<string, boolean>;
-  } | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true)
+
 
   const router = useRouter();
+
+   // Cek apakah sudah login saat pertama kali render
+   useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' })
+        if (meRes.ok) {
+          const meData = await meRes.json()
+          const userPermissions = {
+            backofficePermissions: meData.user?.backofficePermissions || {},
+            appPermissions: meData.user?.appPermissions || {},
+          }
+
+          const permissionRedirectMap: { permissionPath: string; redirectPath: string }[] = [
+            { permissionPath: 'backofficePermissions.viewDashboard', redirectPath: '/dashboard' },
+            { permissionPath: 'backofficePermissions.viewReports.sales', redirectPath: '/reports/sales/summary' },
+            { permissionPath: 'backofficePermissions.viewReports.transactions', redirectPath: '/reports/transactions' },
+            { permissionPath: 'backofficePermissions.viewInventory.summary', redirectPath: '/inventory/summary' },
+            { permissionPath: 'backofficePermissions.viewInventory.supplier', redirectPath: '/inventory/supplier' },
+            { permissionPath: 'backofficePermissions.viewInventory.purchaseOrder', redirectPath: '/inventory/purchaseOrder' },
+            { permissionPath: 'backofficePermissions.viewLibrary.bundlePackage', redirectPath: '/library/bundle_package' },
+            { permissionPath: 'backofficePermissions.viewLibrary.discounts', redirectPath: '/library/discounts' },
+            { permissionPath: 'backofficePermissions.viewLibrary.taxes', redirectPath: '/library/taxes' },
+            { permissionPath: 'backofficePermissions.viewLibrary.gratuity', redirectPath: '/library/gratuity' },
+            { permissionPath: 'backofficePermissions.viewModifier.modifiersLibrary', redirectPath: '/modifiers/modifiersLibrary' },
+            { permissionPath: 'backofficePermissions.viewModifier.modifierCategory', redirectPath: '/modifiers/modifierCategory' },
+            { permissionPath: 'backofficePermissions.viewIngredients.ingredientsLibrary', redirectPath: '/ingredients/ingredientsLibrary' },
+            { permissionPath: 'backofficePermissions.viewIngredients.ingredientsCategory', redirectPath: '/ingredients/ingredientCategory' },
+            { permissionPath: 'backofficePermissions.viewIngredients.recipes', redirectPath: '/ingredients/recipes' },
+            { permissionPath: 'backofficePermissions.viewMenu.menuList', redirectPath: '/menuNotarich/menuList' },
+            { permissionPath: 'backofficePermissions.viewMenu.menuCategory', redirectPath: '/menuNotarich/menuCategory' },
+            { permissionPath: 'backofficePermissions.viewRecap.stockCafe', redirectPath: '/recapNotarich/stockCafe' },
+            { permissionPath: 'backofficePermissions.viewRecap.stockInventory', redirectPath: '/recapNotarich/stockInventory' },
+            { permissionPath: 'backofficePermissions.viewEmployees.employeeSlots', redirectPath: '/employee/employee_slots' },
+            { permissionPath: 'backofficePermissions.viewEmployees.employeeAccess', redirectPath: '/employee/employee_access' },
+            { permissionPath: 'appPermissions.cashier', redirectPath: '/cashier' },
+            { permissionPath: 'appPermissions.menu', redirectPath: '/cashier/menu' },
+            { permissionPath: 'appPermissions.riwayat', redirectPath: '/cashier/riwayat' },
+          ]
+
+          let redirectPath = '/unauthorized'
+          for (const item of permissionRedirectMap) {
+            const keys = item.permissionPath.split('.')
+            let value: any = userPermissions
+
+            for (const key of keys) {
+              if (!value) break
+              value = value[key]
+            }
+
+            if (value === true) {
+              redirectPath = item.redirectPath
+              break
+            }
+          }
+
+          router.replace(redirectPath)
+        }
+      } catch (err) {
+        console.error('Session check failed:', err)
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+
+    checkSession()
+  }, [router])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -125,6 +190,10 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return null // atau loading spinner
+  }
 
   return (
     <div

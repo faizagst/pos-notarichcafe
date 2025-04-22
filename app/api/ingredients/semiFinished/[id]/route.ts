@@ -14,9 +14,8 @@ type PayloadUpdate = {
   }>;
 };
 
-export async function PUT(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const id = params.id;
   if (!id || isNaN(Number(id))) {
     return NextResponse.json({ message: 'Invalid ingredient id' }, { status: 400 });
   }

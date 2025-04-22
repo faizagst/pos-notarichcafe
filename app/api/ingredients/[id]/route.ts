@@ -202,15 +202,36 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     try {
-        await db.query('UPDATE ingredient SET isActive = false WHERE id = ?', [ingredientId]);
-        await db.query('UPDATE gudang SET isActive = false WHERE ingredientId = ?', [ingredientId]);
+        // 1. Ambil semua gudangId untuk ingredient ini
+        const [gudangRows] = await db.query('SELECT id FROM gudang WHERE ingredientId = ?', [ingredientId]);
+        const gudangIds = (gudangRows as any[]).map(g => g.id);
+
+        // 2. Hapus dailygudangstock yang berkaitan
+        if (gudangIds.length > 0) {
+            await db.query(`DELETE FROM dailygudangstock WHERE gudangId IN (${gudangIds.map(() => '?').join(',')})`, gudangIds);
+        }
+
+        // 3. Hapus gudang
+        await db.query('DELETE FROM gudang WHERE ingredientId = ?', [ingredientId]);
+
+        // 4. Hapus relasi dari menuIngredient dan ingredientComposition (jika ada)
+        await db.query('DELETE FROM menuIngredient WHERE ingredientId = ?', [ingredientId]);
+        await db.query('DELETE FROM ingredientComposition WHERE semiIngredientId = ? OR rawIngredientId = ?', [ingredientId, ingredientId]);
+
+        // 5. Hapus data dari dailyingredientstock
+        await db.query('DELETE FROM dailyingredientstock WHERE ingredientId = ?', [ingredientId]);
+
+        // 6. Hapus ingredient utama
+        await db.query('DELETE FROM ingredient WHERE id = ?', [ingredientId]);
 
         return NextResponse.json({
-            message: 'Ingredient berhasil dihapus (soft delete)',
-            ingredient: { id: ingredientId, isActive: false },
+            message: 'Ingredient berhasil dihapus (hard delete)',
+            ingredient: { id: ingredientId },
         });
     } catch (error) {
         console.error('Error deleting ingredient:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
+
+

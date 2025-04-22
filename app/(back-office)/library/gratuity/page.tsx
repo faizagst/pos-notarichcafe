@@ -331,7 +331,7 @@ const GetGratuity: React.FC = () => {
           <table className="min-w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2">ID</th>
+                <th className="border border-gray-300 px-4 py-2">No</th>
                 <th className="border border-gray-300 px-4 py-2">Name</th>
                 <th className="border border-gray-300 px-4 py-2">Value (%)</th>
                 <th className="border border-gray-300 px-4 py-2">Active</th>
@@ -346,9 +346,9 @@ const GetGratuity: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredGratuities.map((gratuity) => (
+                filteredGratuities.map((gratuity, index) => (
                   <tr key={gratuity.id} className="text-center">
-                    <td className="border border-gray-300 px-4 py-2">{gratuity.id}</td>
+                    <td className="border border-gray-300 px-4 py-2">{index + 1}</td>
                     <td className="border border-gray-300 px-4 py-2">{gratuity.name}</td>
                     <td className="border border-gray-300 px-4 py-2">{gratuity.value}</td>
                     <td className="border border-gray-300 px-4 py-2">
@@ -365,10 +365,16 @@ const GetGratuity: React.FC = () => {
                       >
                         Edit
                       </button>
+                      <button
+                      onClick={() => gratuity.id !== undefined && handleDelete(gratuity.id!)}
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mr-2"
+                    >
+                      Delete
+                    </button>
                       {gratuity.isActive ? (
                         <button
                           onClick={() => gratuity.id && handleToggleStatus(gratuity.id, false)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                          className="bg-gray-400 text-white hover:bg-gray-500 px-3 py-1 rounded"
                         >
                           Nonaktif
                         </button>

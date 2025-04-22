@@ -313,7 +313,7 @@ const GetTax: React.FC = () => {
           <table className="min-w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2">ID</th>
+                <th className="border border-gray-300 px-4 py-2">No</th>
                 <th className="border border-gray-300 px-4 py-2">Name</th>
                 <th className="border border-gray-300 px-4 py-2">Value (%)</th>
                 <th className="border border-gray-300 px-4 py-2">Active</th>
@@ -328,9 +328,9 @@ const GetTax: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredTaxes.map((tax) => (
+                filteredTaxes.map((tax, index) => (
                   <tr key={tax.id} className="text-center">
-                    <td className="border border-gray-300 px-4 py-2">{tax.id}</td>
+                    <td className="border border-gray-300 px-4 py-2">{index + 1}</td>
                     <td className="border border-gray-300 px-4 py-2">{tax.name}</td>
                     <td className="border border-gray-300 px-4 py-2">{tax.value}</td>
                     <td className="border border-gray-300 px-4 py-2">
@@ -347,10 +347,16 @@ const GetTax: React.FC = () => {
                       >
                         Edit
                       </button>
+                      <button
+                      onClick={() => tax.id !== undefined && handleDelete(tax.id!)}
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mr-2"
+                    >
+                      Delete
+                    </button>
                       {tax.isActive ? (
                         <button
                           onClick={() => tax.id && handleToggleStatus(tax.id, false)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                          className="bg-gray-400 text-white hover:bg-gray-500 px-3 py-1 rounded"
                         >
                           Nonaktif
                         </button>

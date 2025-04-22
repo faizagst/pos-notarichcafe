@@ -408,10 +408,16 @@ const handleToggleStatus = async (id: number, newStatus: boolean) => {
                       >
                         Edit
                       </button>
+                      <button
+                      onClick={() => discount.id !== undefined && handleDelete(discount.id!)}
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mr-2"
+                    >
+                      Delete
+                    </button>
                       {discount.isActive ? (
                         <button
                           onClick={() => discount.id && handleToggleStatus(discount.id, false)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                          className="bg-gray-400 text-white hover:bg-gray-500 px-3 py-1 rounded"
                         >
                           Nonaktif
                         </button>

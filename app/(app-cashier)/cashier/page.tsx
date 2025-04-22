@@ -21,6 +21,8 @@ interface Menu {
   Status: string;
   discounts: { discount: Discount }[];
   modifiers: Modifier[];
+  maxBeli: number;
+  isActive: boolean;
   bundleCompositions: {
     id: number;
     bundleId: number;
@@ -207,24 +209,6 @@ export default function KasirPage() {
     }
   };
 
-
-  const resetBookingOrder = async (orderId: number) => {
-    try {
-      const response = await fetch("/api/resetBookingOrder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      });
-      if (!response.ok) throw new Error("Gagal mereset meja reservasi");
-      toast.success("Pesanan booking berhasil direset");
-      fetchOrders(); // Refresh orders after reset
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Gagal mereset meja reservasi");
-    }
-  };
-
-
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
@@ -249,7 +233,7 @@ export default function KasirPage() {
         if (!menuResponse.ok) throw new Error(`Failed to fetch menus: ${menuResponse.status}`);
         const menuData = await menuResponse.json();
         setMenus(menuData);
-
+  
         const discountResponse = await fetch("/api/discount");
         if (!discountResponse.ok) throw new Error(`Failed to fetch discounts: ${discountResponse.status}`);
         const discountData = await discountResponse.json();
@@ -258,23 +242,37 @@ export default function KasirPage() {
         console.error("Error fetching menus or discounts:", error);
       }
     };
+  
     fetchMenusAndDiscounts();
     fetchOrders();
-
+  
     const socketIo = io(SOCKET_URL, {
       path: "/api/socket",
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 5000,
     });
-
+  
     socketIo.on("connect", () => console.log("Terhubung ke WebSocket server:", socketIo.id));
-
+  
+    socketIo.on("menuUpdated", (data) => {
+      console.log("Menu telah diperbarui:", data);
+      
+      setMenus((prevMenus) =>
+        prevMenus.map((menu) =>
+          menu.id === data.menuId
+            ? { ...menu, Status: data.Status, isActive: data.isActive }  
+            : menu
+        )
+      );
+      fetchMenusAndDiscounts();
+    });
+  
     socketIo.on("ordersUpdated", (data: any) => {
       console.log("Pesanan diperbarui di Kasir:", data);
       fetchOrders();
     });
-
+  
     socketIo.on("paymentStatusUpdated", (updatedOrder: Order) => {
       console.log("Status pembayaran diperbarui:", updatedOrder);
       setOrders((prevOrders) =>
@@ -292,13 +290,13 @@ export default function KasirPage() {
         )
       );
     });
-
+  
     socketIo.on("reservationDeleted", ({ reservasiId, orderId }) => {
       console.log("Reservasi dihapus di Kasir:", { reservasiId, orderId });
       setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
       fetchOrders();
     });
-
+  
     socketIo.on("reservationUpdated", (updatedReservasi) => {
       console.log("Reservasi diperbarui:", updatedReservasi);
       setOrders((prevOrders) =>
@@ -309,21 +307,22 @@ export default function KasirPage() {
         )
       );
     });
-
+  
     socketIo.on("tableStatusUpdated", ({ tableNumber }) => {
       console.log(`Status meja diperbarui di Kasir: ${tableNumber}`);
       fetchOrders();
     });
-
+  
     socketIo.on("disconnect", () => console.log("Socket terputus"));
-
+  
     setSocket(socketIo);
-
+  
     return () => {
       socketIo.disconnect();
       console.log("WebSocket disconnected");
     };
   }, []);
+  
 
   const confirmPayment = async (
     orderId: number,
@@ -367,7 +366,6 @@ export default function KasirPage() {
       );
       toast.success("Pembayaran berhasil dikonfirmasi!");
       printKitchenAndBarOrders(updatedOrder);
-
       setPaymentMethod("tunai");
       setPaymentId("");
       setCashGiven("");
@@ -458,23 +456,34 @@ export default function KasirPage() {
       const existingItemIndex = prevCart.findIndex(
         (item) => item.uniqueKey === uniqueKey
       );
-
+  
+      const maxBeli = menu.maxBeli ?? Infinity; // Jika tidak ada, default ke tak terbatas
+  
       let updatedCart;
+  
       if (existingItemIndex !== -1) {
+        const existingItem = prevCart[existingItemIndex];
+        if (existingItem.quantity >= maxBeli) {
+          // Bisa munculkan toast di sini
+          alert(`Maksimum pembelian untuk ${menu.name} adalah ${maxBeli}`);
+          return prevCart;
+        }
+  
         updatedCart = prevCart.map((item, index) =>
-          index === existingItemIndex ? { ...item, quantity: item.quantity + 1 } : item
+          index === existingItemIndex
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       } else {
-        const newItem = {
+        updatedCart = [...prevCart, {
           menu,
           quantity: 1,
           note: "",
           modifierIds,
           uniqueKey,
-        };
-        updatedCart = [...prevCart, newItem];
+        }];
       }
-
+  
       fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -483,10 +492,11 @@ export default function KasirPage() {
         .then((res) => res.json())
         .then((data) => console.log("Cart sent to API:", data))
         .catch((err) => console.error("Error sending cart:", err));
-
+  
       return updatedCart;
     });
   };
+  
 
   const handleModifierToggle = (modifierId: number) => {
     setSelectedModifiers((prev) =>
@@ -882,6 +892,9 @@ export default function KasirPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {menus
                   .filter((menu) => {
+                    const statusLower = menu.Status?.toLowerCase();
+                    const isAvailable = statusLower === 'tersedia' && menu.maxBeli > 0;
+                    if (!isAvailable || !menu.isActive) return false;
                     if (selectedCategory && menu.category !== selectedCategory) return false;
                     if (searchQuery && !menu.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                     return true;
@@ -969,6 +982,7 @@ export default function KasirPage() {
                         <span>{item.quantity}</span>
                         <button
                           onClick={() => addToCart(item.menu, item.modifierIds)}
+                          disabled={item.quantity >= item.menu.maxBeli}
                           className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition"
                         >
                           +
@@ -1126,7 +1140,6 @@ export default function KasirPage() {
               title="✅ Pesanan Selesai"
               orders={completedOrders}
               resetTable={resetTable}
-              resetBookingOrder={resetBookingOrder} // Add this prop
             />
           </div>
         )}
@@ -1706,7 +1719,6 @@ function OrderSection({
     </div>
   );
 }
-
 function OrderItemComponent({
   order,
   confirmPayment,

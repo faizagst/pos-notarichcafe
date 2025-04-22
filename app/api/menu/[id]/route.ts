@@ -56,33 +56,60 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const menuId = Number(params.id);
+
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const menuId = Number(id);
   if (isNaN(menuId)) {
     return NextResponse.json({ message: "ID tidak valid" }, { status: 400 });
   }
 
   const body = await req.json();
-  const { Status } = body;
+  const { Status, isActive } = body;
 
-  if (!Status || !["Tersedia", "Habis"].includes(Status)) {
-    return NextResponse.json({
-      message: 'Status diperlukan dan harus "Tersedia" atau "Habis"',
-    }, { status: 400 });
+  if (Status === undefined && isActive === undefined) {
+    return NextResponse.json({ message: "Status atau isActive harus diberikan" }, { status: 400 });
   }
 
   try {
-    const [result] = await db.query(
-      `UPDATE menu SET Status = ? WHERE id = ?`,
-      [Status, menuId]
-    );
+    let query = "UPDATE menu SET ";
+    const params: any[] = [];
+
+    if (Status !== undefined) {
+      if (!["Tersedia", "Habis"].includes(Status)) {
+        return NextResponse.json({
+          message: 'Status harus "Tersedia" atau "Habis"',
+        }, { status: 400 });
+      }
+      query += "Status = ?, ";
+      params.push(Status);
+    }
+
+    if (isActive !== undefined) {
+      query += "isActive = ?, ";
+      params.push(isActive ? 1 : 0);
+    }
+
+    query = query.replace(/,\s*$/, "") + " WHERE id = ?";
+    params.push(menuId);
+
+    await db.query(query, params);
+
+    // Emit event `menuUpdated` ke semua client yang terhubung
+    const io = (global as any).io;
+    if (io) {
+      io.emit("menuUpdated", { menuId, Status, isActive });
+    }
 
     return NextResponse.json({
-      message: "Status menu berhasil diperbarui",
-      menu: { id: menuId, Status },
+      message: "Menu berhasil diperbarui",
+      menu: { id: menuId, Status, isActive },
     }, { status: 200 });
   } catch (error: any) {
-    console.error("Error updating menu status:", error);
+    console.error("Error updating menu:", error);
     return NextResponse.json({ message: "Internal server error", error: error.message }, { status: 500 });
   }
 }
+
+
+

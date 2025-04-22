@@ -25,10 +25,18 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       path: "/api/socket",
     });
 
+    // Simpan ke server dan global agar bisa digunakan di tempat lain
     socket.server.io = io;
+    (global as any).io = io;
 
     io.on("connection", (socket) => {
       console.log("🔌 Client terhubung:", socket.id);
+
+      // Tangkap event menuUpdated dari API
+      socket.on("menuUpdated", (data) => {
+        console.log("📢 Menu telah diperbarui", data);
+        io.emit("menuUpdated", data);  // Mengirimkan informasi menu yang diperbarui ke semua client
+      });
 
       socket.on("reservationAdded", (newReservasi) => {
         io.emit("reservationAdded", newReservasi);

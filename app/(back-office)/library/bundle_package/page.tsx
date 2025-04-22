@@ -15,13 +15,9 @@ interface Bundle {
   }[];
   description?: string;
   category: string;
-  isActive?: boolean;
-  discount?: {
-    id: number;
-    name: string;
-    type: string;
-    value: number;
-  };
+  isActive: boolean;
+  discounts: DiscountInfo[];
+  modifiers: Modifier[];
 }
 
 interface MenuOption {
@@ -30,17 +26,22 @@ interface MenuOption {
   price: number;
 }
 
-interface Discount {
-  id: number;
-  name: string;
-  scope: string;
-  value: number;
-  type: string;
+interface DiscountInfo {
+  discount: {
+    id: number;
+    name: string;
+    type: string;
+    scope: string;
+    value: number;
+    isActive: boolean;
+  };
 }
 
 interface Modifier {
-  id: number;
-  name: string;
+  modifier: {
+    id: number;
+    name: string;
+  };
 }
 
 const BundlesPage: React.FC = () => {
@@ -75,7 +76,7 @@ const BundlesPage: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Apakah Anda yakin ingin menghapus bundle ini?')) return;
     try {
-      const res = await fetch(`/api/menus?id=${id}`, {
+      const res = await fetch(`/api/bundles/${id}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -94,10 +95,10 @@ const BundlesPage: React.FC = () => {
     if (!confirm("Apakah Anda yakin ingin mengubah status?")) return;
     try {
       const res = await fetch(`/api/bundles/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: newStatus }),
-      });
+      });      
       if (!res.ok) {
         throw new Error("Failed to toggle status");
       }
@@ -143,12 +144,14 @@ const BundlesPage: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200 border">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gambar</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Bundle</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Menu yang Digunakan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Bundle</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu yang Digunakan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">Diskon</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modifiers</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -169,32 +172,64 @@ const BundlesPage: React.FC = () => {
                       {bundle.bundleCompositions && bundle.bundleCompositions.length > 0
                         ? bundle.bundleCompositions
                           .map((comp) => `${comp.menu.name} (${comp.amount})`)
-                          .join('+ ')
+                          .join(' + ')
                         : '-'}
                     </td>
                     <td className="px-6 py-4">{bundle.price}</td>
                     <td className="px-6 py-4">{bundle.Status}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                    {bundle.discounts && bundle.discounts.length > 0 ? (
+                      bundle.discounts.map((d, index) => (
+                        <span key={d.discount.id}>
+                          {d.discount.name} ({d.discount.value}
+                          {d.discount.type === "PERCENTAGE" ? "%" : ""})
+                          {index < bundle.discounts.length - 1 && ", "}
+                        </span>
+                      ))
+                    ) : (
+                      "Tidak ada diskon"
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {bundle.modifiers && bundle.modifiers.length > 0 ? (
+                      bundle.modifiers.map((mod, index) => (
+                        <span key={mod.modifier.id}>
+                          {mod.modifier.name}
+                          {index < bundle.modifiers.length - 1 && ", "}
+                        </span>
+                      ))
+                    ) : (
+                      "Tidak ada modifier"
+                    )}
+                  </td>
+
                     <td className="px-6 py-4">
                       <button
                         onClick={() => {
                           setSelectedBundle(bundle);
                           setShowEditModal(true);
                         }}
-                        className="bg-blue-500 hover:bg-green-600 text-white py-1 px-3 rounded mr-2"
+                        className="bg-blue-500 hover:bg-green-600 text-white py-1 px-3 rounded mr-2 mb-2"
                       >
                         Edit
                       </button>
+                      <button
+                      onClick={() => handleDelete(bundle.id)}
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mr-2 mb-2"
+                    >
+                      Delete
+                    </button>
                       {bundle.isActive ? (
                         <button
                           onClick={() => bundle.id && handleToggleStatus(bundle.id, false)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                          className="bg-gray-400 text-white hover:bg-gray-500 px-3 py-1 rounded mr-2 mb-2"
                         >
-                          Nonaktif
+                          Nonaktifkan
                         </button>
                       ) : (
                         <button
                           onClick={() => bundle.id && handleToggleStatus(bundle.id, true)}
-                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mr-2 mb-2"
                         >
                           Aktifkan
                         </button>
@@ -547,10 +582,13 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
   const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
   // Inisialisasi dengan diskon yang sudah ada (jika ada)
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>(
-    bundle.discount ? bundle.discount.id.toString() : ""
+    bundle.discounts.length > 0 ? bundle.discounts[0].discount.id.toString() : ""
   );
+
   const [modifierOptions, setModifierOptions] = useState<Modifier[]>([]);
-  const [selectedModifierIds, setSelectedModifierIds] = useState<number[]>([]);
+  const [selectedModifierIds, setSelectedModifierIds] = useState<number[]>(
+    bundle.modifiers.map((mod) => mod.modifier.id)
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

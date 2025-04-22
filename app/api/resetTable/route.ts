@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
       if ((reservasiRows as any[]).length === 0) {
         await conn.query(
-          `DELETE FROM dataMeja WHERE nomorMeja = ?`,
+          `DELETE FROM dataMeja WHERE nomor_meja = ?`,
           [parseInt(tableNumber, 10)]
         );
       }

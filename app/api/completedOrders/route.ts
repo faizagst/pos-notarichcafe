@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ orders: transformedOrders });
   } catch (error) {
-    console.error('❌ Error fetching completed orders:', error);
+    console.error('Error fetching completed orders:', error);
     return NextResponse.json(
       {
         message: 'Gagal mengambil data riwayat pesanan',

@@ -32,9 +32,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
-// DELETE: Soft delete discount
+// DELETE: Hard delete discount
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params; // 👈 juga pakai await
+  const { id } = await context.params;
   const discountId = Number(id);
 
   if (!discountId) {
@@ -42,13 +42,19 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   }
 
   try {
-    await db.execute(`UPDATE discount SET isActive = false WHERE id = ?`, [discountId]);
+    // Hapus relasi jika ada (contoh: menuDiscount)
+    await db.query(`DELETE FROM menuDiscount WHERE discountId = ?`, [discountId]);
 
-    const [rows]: any = await db.query(`SELECT * FROM discount WHERE id = ?`, [discountId]);
+    // Hapus dari tabel utama discount
+    await db.execute(`DELETE FROM discount WHERE id = ?`, [discountId]);
 
-    return NextResponse.json(rows[0], { status: 200 });
+    return NextResponse.json({
+      message: "Discount deleted permanently",
+      discountId,
+    }, { status: 200 });
   } catch (error) {
     console.error("Error deleting discount:", error);
     return NextResponse.json({ error: "Failed to delete discount" }, { status: 500 });
   }
 }
+

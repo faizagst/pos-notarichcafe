@@ -30,27 +30,22 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
+// DELETE: Hard delete supplier
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    const { id } = await context.params; 
-    const supplierId = Number(id);
+  const { id } = await context.params;
+  const supplierId = Number(id);
+
   if (!supplierId) {
     return NextResponse.json({ error: 'Invalid supplier ID' }, { status: 400 });
   }
 
   try {
-    await db.execute(
-      `
-      UPDATE supplier
-      SET isActive = false
-      WHERE id = ?
-      `,
-      [supplierId]
-    );
+    // Hard delete
+    await db.execute("DELETE FROM supplier WHERE id = ?", [supplierId]);
 
-    const [result] = await db.execute('SELECT * FROM supplier WHERE id = ?', [supplierId]);
-    return NextResponse.json((result as any)[0]);
+    return NextResponse.json({ message: "Supplier deleted successfully" }, { status: 200 });
   } catch (error) {
-    console.error('Error deleting supplier:', error);
-    return NextResponse.json({ error: 'Failed to delete supplier' }, { status: 500 });
+    console.error("Error deleting supplier:", error);
+    return NextResponse.json({ error: "Failed to delete supplier" }, { status: 500 });
   }
 }

@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
-// DELETE: Soft delete tax
+// DELETE: Hard delete tax
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    const { id } = await context.params; // 👈 juga pakai await
-    const taxId = Number(id);
-  
-    if (!taxId) {
-      return NextResponse.json({ error: "Missing tax id" }, { status: 400 });
-    }
+  const { id } = await context.params;
+  const taxId = Number(id);
+
+  if (!taxId) {
+    return NextResponse.json({ error: "Missing tax id" }, { status: 400 });
+  }
 
   try {
-    await db.execute("UPDATE tax SET isActive = false WHERE id = ?", [taxId]);
-    const [updated]: any = await db.query("SELECT * FROM tax WHERE id = ?", [taxId]);
-    return NextResponse.json(updated[0], { status: 200 });
+    // Hard delete
+    await db.execute("DELETE FROM tax WHERE id = ?", [taxId]);
+
+    return NextResponse.json({ message: "Tax deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("Error deleting tax:", error);
     return NextResponse.json({ error: "Failed to delete tax" }, { status: 500 });
   }
 }
+
 
 // PUT: Update tax
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {

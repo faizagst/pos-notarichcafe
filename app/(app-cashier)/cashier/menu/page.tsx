@@ -45,6 +45,7 @@ interface Menu {
     ingredients: MenuIngredient[];
     discounts: DiscountInfo[];
     modifiers: Modifier[];
+    isActive: boolean;
 }
 
 export default function ManagerMenusPage() {
@@ -80,8 +81,8 @@ export default function ManagerMenusPage() {
         setFilteredMenus(filtered);
     }, [searchQuery, menus]);
 
-    const handleToggleStatus = async (menuId: number, currentStatus: string) => {
-        const newStatus = currentStatus === "Tersedia" ? "Habis" : "Tersedia";
+    const handleToggleIsActive = async (menuId: number, currentIsActive: boolean) => {
+        const newIsActive = !currentIsActive;
 
         try {
             const res = await fetch(`/api/menu/getMenu/${menuId}`, {
@@ -89,24 +90,25 @@ export default function ManagerMenusPage() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ Status: newStatus }),
+                body: JSON.stringify({ isActive: newIsActive }),
             });
 
             if (res.ok) {
                 setMenus(menus.map(menu =>
-                    menu.id === menuId ? { ...menu, Status: newStatus } : menu
+                    menu.id === menuId ? { ...menu, isActive: newIsActive } : menu
                 ));
                 setFilteredMenus(filteredMenus.map(menu =>
-                    menu.id === menuId ? { ...menu, Status: newStatus } : menu
+                    menu.id === menuId ? { ...menu, isActive: newIsActive } : menu
                 ));
             } else {
                 toast.error("Gagal mengubah status menu.");
             }
         } catch (error) {
-            console.error("Error updating status:", error);
+            console.error("Error updating isActive:", error);
             alert("Terjadi kesalahan saat mengubah status.");
         }
     };
+
 
     return (
         <div className="p-10 mt-[65px]">
@@ -160,13 +162,14 @@ export default function ManagerMenusPage() {
                                             <input
                                                 type="checkbox"
                                                 className="sr-only peer"
-                                                checked={menu.Status === "Tersedia" || menu.Status === "tersedia"}
-                                                onChange={() => handleToggleStatus(menu.id, menu.Status)}
+                                                checked={menu.isActive}
+                                                onChange={() => handleToggleIsActive(menu.id, menu.isActive)}
                                             />
                                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                                             <span className="ml-3 text-sm font-medium text-gray-900">
-                                                {menu.Status === "Tersedia" || menu.Status === "tersedia" ? "On" : "Off"}
+                                                {menu.isActive ? "Aktif" : "Nonaktif"}
                                             </span>
+
                                         </label>
                                     </td>
                                 </tr>

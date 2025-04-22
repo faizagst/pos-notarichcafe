@@ -65,14 +65,14 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       });
 
       const mockRes = {
-        end: () => {},
-        setHeader: () => {},
-        getHeader: () => {},
+        end: () => { },
+        setHeader: () => { },
+        getHeader: () => { },
       };
 
       await runMiddleware(mockReq, mockRes, uploadMiddleware);
 
-      const { name, description, price, includedMenus } = mockReq.body;
+      const { name, description, price, includedMenus, discountId, modifierIds } = mockReq.body;
       const parsedMenuRows = includedMenus
         ? typeof includedMenus === "string"
           ? JSON.parse(includedMenus)
@@ -115,6 +115,30 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
         [id]
       );
 
+      // Hapus relasi lama terlebih dahulu
+      await db.execute("DELETE FROM menuDiscount WHERE menuId = ?", [id]);
+      await db.execute("DELETE FROM menuModifier WHERE menuId = ?", [id]);
+
+      // Tambahkan diskon jika ada
+      if (discountId) {
+        await db.execute("INSERT INTO menuDiscount (menuId, discountId) VALUES (?, ?)", [id, discountId]);
+      }
+
+      // Tambahkan modifier jika ada
+      let parsedModifiers: number[] = [];
+      if (modifierIds) {
+        try {
+          parsedModifiers = typeof modifierIds === 'string' ? JSON.parse(modifierIds) : modifierIds;
+          if (Array.isArray(parsedModifiers) && parsedModifiers.length > 0) {
+            const values = parsedModifiers.map(modId => [id, modId]);
+            await db.query("INSERT INTO menuModifier (menuId, modifierId) VALUES ?", [values]);
+          }
+        } catch (err) {
+          console.error("Gagal parsing modifierIds:", err);
+        }
+      }
+
+
       return NextResponse.json({
         message: "Bundle updated successfully",
         bundle: result,
@@ -142,20 +166,64 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params; // 👈 juga pakai await
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
 
   try {
-    await db.execute("UPDATE menu SET isActive = false WHERE id = ?", [id]);
+    const body = await req.json();
+    const { isActive } = body;
+
+    if (typeof isActive !== "boolean") {
+      return NextResponse.json({ message: "Missing or invalid isActive field" }, { status: 400 });
+    }
+
+    await db.execute("UPDATE menu SET isActive = ? WHERE id = ?", [isActive, id]);
+
     const [result]: any = await db.query("SELECT * FROM menu WHERE id = ?", [id]);
+    const updatedMenu = result[0];
+
+    // 🔄 Emit ke semua client (kasir) via WebSocket
+    if (typeof (global as any).io !== "undefined") {
+      (global as any).io.emit("menuUpdated", {
+        id: updatedMenu.id,
+        name: updatedMenu.name,
+        type: updatedMenu.type,
+        isActive: updatedMenu.isActive,
+      });
+    }
 
     return NextResponse.json({
-      message: "Bundle deleted successfully",
-      bundle: result[0],
+      message: "Status bundle berhasil diperbarui",
+      bundle: updatedMenu,
     });
   } catch (error) {
-    console.error("Error deleting bundle:", error);
+    console.error("PATCH error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
+
+  try {
+    // Hapus terlebih dahulu relasi yang terkait
+    await db.query("DELETE FROM menuComposition WHERE bundleId = ?", [id]);
+    await db.query("DELETE FROM menuModifier WHERE menuId = ?", [id]);
+    await db.query("DELETE FROM menuDiscount WHERE menuId = ?", [id]);
+    await db.query("DELETE FROM menuIngredient WHERE menuId = ?", [id]);
+
+    // Hapus data menu dari tabel utama
+    const [result]: any = await db.query("DELETE FROM menu WHERE id = ?", [id]);
+
+    return NextResponse.json({
+      message: "Bundle/menu deleted permanently",
+      menuId: id,
+    }, { status: 200 });
+  } catch (error: any) {
+    console.error("Error deleting bundle:", error);
+    return NextResponse.json({ message: "Internal server error", error: error.message }, { status: 500 });
+  }
+}
+

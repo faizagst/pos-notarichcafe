@@ -45,6 +45,7 @@ interface Menu {
   ingredients: MenuIngredient[];
   discounts: DiscountInfo[];
   modifiers: Modifier[];
+  isActive: boolean;
 }
 
 export default function ManagerMenusPage() {
@@ -111,6 +112,27 @@ export default function ManagerMenusPage() {
   const handleMenuUpdated = () => {
     fetchMenus();
   };
+
+  const handleToggleActive = async (menuId: number, newStatus: boolean) => {
+    try {
+      const res = await fetch(`/api/menu/${menuId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
+  
+      if (res.ok) {
+        toast.success(`Menu berhasil ${newStatus ? "diaktifkan" : "dinonaktifkan"}`);
+        fetchMenus(); // refresh data
+      } else {
+        toast.error("Gagal mengubah status menu.");
+      }
+    } catch (error) {
+      console.error("Error toggling active status:", error);
+      toast.error("Terjadi kesalahan.");
+    }
+  };
+  
 
   return (
     <div className="p-10 mt-[65px]">
@@ -209,15 +231,22 @@ export default function ManagerMenusPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleEdit(menu.id)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded mr-2"
+                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded mr-2 mb-2"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(menu.id)}
-                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mr-2 mb-2"
                     >
                       Delete
+                    </button>
+                    <button
+                      onClick={() => handleToggleActive(menu.id, !menu.isActive)}
+                      className={`px-3 py-1 rounded font-semibold ${menu.isActive ? "bg-green-500 text-white hover:bg-green-600" : "bg-gray-400 text-white hover:bg-gray-500"
+                        }`}
+                    >
+                      {menu.isActive ? "Aktif" : "Nonaktif"}
                     </button>
                   </td>
                 </tr>
@@ -231,103 +260,103 @@ export default function ManagerMenusPage() {
               )}
             </tbody>
           </table>
-          </div>
+        </div>
       )}
 
-          {showAddModal && (
-            <AddMenuModal onCloseAction={() => setShowAddModal(false)} onMenuAddAction={fetchMenus} />
-          )}
-          {editMenuId !== null && (
-            <EditMenuModal
-              menuId={editMenuId}
-              onCloseAction={handleCloseModal} // Ubah nama prop
-              onMenuUpdatedAction={handleMenuUpdated} // Ubah nama prop
-            />
-          )}
-        </div>
-      );
+      {showAddModal && (
+        <AddMenuModal onCloseAction={() => setShowAddModal(false)} onMenuAddAction={fetchMenus} />
+      )}
+      {editMenuId !== null && (
+        <EditMenuModal
+          menuId={editMenuId}
+          onCloseAction={handleCloseModal} // Ubah nama prop
+          onMenuUpdatedAction={handleMenuUpdated} // Ubah nama prop
+        />
+      )}
+    </div>
+  );
 }
 
-      // Edit Menu Modal
+// Edit Menu Modal
 
-      interface Category {
-        id: number;
-      kategori: string;
+interface Category {
+  id: number;
+  kategori: string;
 }
 
 
-      interface IngredientOption {
-        id: number;
-      name: string;
-      unit?: string;
+interface IngredientOption {
+  id: number;
+  name: string;
+  unit?: string;
 }
 
-      interface IngredientRow {
-        ingredientId: number;
-      amount: number;
+interface IngredientRow {
+  ingredientId: number;
+  amount: number;
 }
 
-      interface ModifierOption {
-        id: number;
-      name: string;
-      price: number; // Tambahkan harga modifier
-      category: {id: number; name: string }; // Tambahkan kategori modifier
+interface ModifierOption {
+  id: number;
+  name: string;
+  price: number; // Tambahkan harga modifier
+  category: { id: number; name: string }; // Tambahkan kategori modifier
 }
 
-      interface Discount {
-        id: number;
-      name: string;
-      type: string;
-      scope: string;
-      value: number;
-      isActive: boolean;
+interface Discount {
+  id: number;
+  name: string;
+  type: string;
+  scope: string;
+  value: number;
+  isActive: boolean;
 }
 
-      interface DiscountInfo {
-        discount: Discount;
+interface DiscountInfo {
+  discount: Discount;
 }
 
-      interface Modifier {
-        modifier: {
-        id: number;
-      name: string;
+interface Modifier {
+  modifier: {
+    id: number;
+    name: string;
   };
 }
 
-      interface EditMenuModalProps {
-        menuId: number;
+interface EditMenuModalProps {
+  menuId: number;
   onCloseAction: () => void; // Ubah nama prop
   onMenuUpdatedAction: () => void; // Ubah nama prop
 }
 
-      export function EditMenuModal({menuId, onCloseAction, onMenuUpdatedAction}: EditMenuModalProps) {
+export function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: EditMenuModalProps) {
   const [name, setName] = useState("");
-      const [description, setDescription] = useState("");
-      const [price, setPrice] = useState("");
-      const [image, setImage] = useState<File | null>(null);
-      const [imageUrl, setImageUrl] = useState<string | null>(null);
-      const [status, setStatus] = useState("tersedia");
-      const [category, setCategory] = useState("makanan");
-      const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>([]);
-      const [availableIngredients, setAvailableIngredients] = useState<IngredientOption[]>([]);
-      const [applyDiscount, setApplyDiscount] = useState<boolean>(false);
-        const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
-          const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
-          const [availableModifiers, setAvailableModifiers] = useState<ModifierOption[]>([]);
-          const [selectedModifierIds, setSelectedModifierIds] = useState<number[]>([]);
-          const [categories, setCategories] = useState<Category[]>([]);
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState("tersedia");
+  const [category, setCategory] = useState("makanan");
+  const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>([]);
+  const [availableIngredients, setAvailableIngredients] = useState<IngredientOption[]>([]);
+  const [applyDiscount, setApplyDiscount] = useState<boolean>(false);
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
+  const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
+  const [availableModifiers, setAvailableModifiers] = useState<ModifierOption[]>([]);
+  const [selectedModifierIds, setSelectedModifierIds] = useState<number[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await fetch("/api/menuCategory");
-          const data = await res.json();
-          setCategories(data.categories);
+        const data = await res.json();
+        setCategories(data.categories);
       } catch (error) {
-            console.error("Error fetching categories:", error);
+        console.error("Error fetching categories:", error);
       }
     };
-          fetchCategories();
+    fetchCategories();
   }, []);
 
 
@@ -336,13 +365,13 @@ export default function ManagerMenusPage() {
     const fetchIngredients = async () => {
       try {
         const res = await fetch("/api/ingredients");
-          const data = await res.json();
-          setAvailableIngredients(data);
+        const data = await res.json();
+        setAvailableIngredients(data);
       } catch (error) {
-            console.error("Error fetching ingredients:", error);
+        console.error("Error fetching ingredients:", error);
       }
     };
-          fetchIngredients();
+    fetchIngredients();
   }, []);
 
   // Ambil daftar diskon dengan scope MENU
@@ -350,14 +379,14 @@ export default function ManagerMenusPage() {
     const fetchDiscounts = async () => {
       try {
         const res = await fetch("/api/discount");
-          const data = await res.json();
+        const data = await res.json();
         const menuDiscounts = data.filter((d: any) => d.scope === "MENU" && d.isActive);
-          setAvailableDiscounts(menuDiscounts);
+        setAvailableDiscounts(menuDiscounts);
       } catch (error) {
-            console.error("Error fetching discounts:", error);
+        console.error("Error fetching discounts:", error);
       }
     };
-          fetchDiscounts();
+    fetchDiscounts();
   }, []);
 
   // Ambil daftar modifier yang tersedia
@@ -365,13 +394,13 @@ export default function ManagerMenusPage() {
     const fetchModifiers = async () => {
       try {
         const res = await fetch("/api/modifier");
-          const data = await res.json();
-          setAvailableModifiers(data);
+        const data = await res.json();
+        setAvailableModifiers(data);
       } catch (error) {
-            console.error("Error fetching modifiers:", error);
+        console.error("Error fetching modifiers:", error);
       }
     };
-          fetchModifiers();
+    fetchModifiers();
   }, []);
 
   // Ambil data menu berdasarkan menuId dan prefill form
@@ -379,9 +408,9 @@ export default function ManagerMenusPage() {
     const fetchMenuData = async () => {
       try {
         const res = await fetch(`/api/menu/getMenu?id=${menuId}`);
-          const data = await res.json();
-          if (res.ok && data.menu) {
-            setName(data.menu.name);
+        const data = await res.json();
+        if (res.ok && data.menu) {
+          setName(data.menu.name);
           setDescription(data.menu.description || "");
           setPrice(data.menu.price.toString());
           setStatus(data.menu.Status || "tersedia");
@@ -391,387 +420,387 @@ export default function ManagerMenusPage() {
           }
           if (data.menu.ingredients && Array.isArray(data.menu.ingredients)) {
             const rows = data.menu.ingredients.map((item: any) => ({
-            ingredientId: item.ingredientId || item.ingredient.id,
-          amount: item.amount,
+              ingredientId: item.ingredientId || item.ingredient.id,
+              amount: item.amount,
             }));
-          setIngredientRows(rows);
+            setIngredientRows(rows);
           }
           if (data.menu.modifiers && Array.isArray(data.menu.modifiers)) {
             const modifierIds = data.menu.modifiers.map((mod: any) => mod.modifierId);
-          setSelectedModifierIds(modifierIds);
+            setSelectedModifierIds(modifierIds);
           }
           if (data.menu.discounts && data.menu.discounts.length > 0) {
             setApplyDiscount(true);
-          setSelectedDiscountId(data.menu.discounts[0].discountId.toString());
+            setSelectedDiscountId(data.menu.discounts[0].discountId.toString());
           } else {
             setApplyDiscount(false);
-          setSelectedDiscountId("");
+            setSelectedDiscountId("");
           }
         }
       } catch (error) {
-            console.error("Error fetching menu data:", error);
+        console.error("Error fetching menu data:", error);
       }
     };
-          fetchMenuData();
+    fetchMenuData();
   }, [menuId]);
 
   // Fungsi untuk mengelola baris ingredient
   const addIngredientRow = () => {
-            setIngredientRows([...ingredientRows, { ingredientId: 0, amount: 0 }]);
+    setIngredientRows([...ingredientRows, { ingredientId: 0, amount: 0 }]);
   };
 
   const updateIngredientRow = (index: number, field: keyof IngredientRow, value: number) => {
     const newRows = [...ingredientRows];
-          newRows[index] = {...newRows[index], [field]: value };
-          setIngredientRows(newRows);
+    newRows[index] = { ...newRows[index], [field]: value };
+    setIngredientRows(newRows);
   };
 
   const removeIngredientRow = (index: number) => {
     const newRows = ingredientRows.filter((_, i) => i !== index);
-          setIngredientRows(newRows);
+    setIngredientRows(newRows);
   };
 
   // Fungsi untuk mengelola modifier
   const addModifier = (modifierId: number) => {
     if (!selectedModifierIds.includes(modifierId) && modifierId !== 0) {
-            setSelectedModifierIds([...selectedModifierIds, modifierId]);
+      setSelectedModifierIds([...selectedModifierIds, modifierId]);
     }
   };
 
   const removeModifier = (modifierId: number) => {
-            setSelectedModifierIds(selectedModifierIds.filter((id) => id !== modifierId));
+    setSelectedModifierIds(selectedModifierIds.filter((id) => id !== modifierId));
   };
 
-          // Handler untuk submit form edit
-          const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-            e.preventDefault();
+  // Handler untuk submit form edit
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-            if (!name || !price) {
-              toast.error("Name dan Price wajib diisi!");
-            return;
+    if (!name || !price) {
+      toast.error("Name dan Price wajib diisi!");
+      return;
     }
 
-            const formData = new FormData();
-            formData.append("id", menuId.toString());
-            formData.append("name", name);
-            formData.append("description", description);
-            formData.append("price", price);
-            if (image) {
-              formData.append("image", image);
+    const formData = new FormData();
+    formData.append("id", menuId.toString());
+    formData.append("name", name);
+    formData.append("description", description);
+    formData.append("price", price);
+    if (image) {
+      formData.append("image", image);
     }
-            formData.append("Status", status);
-            formData.append("category", category);
-            formData.append("ingredients", JSON.stringify(ingredientRows));
-            formData.append("modifierIds", JSON.stringify(selectedModifierIds));
-            if (applyDiscount && selectedDiscountId) {
-              formData.append("discountId", selectedDiscountId);
+    formData.append("Status", status);
+    formData.append("category", category);
+    formData.append("ingredients", JSON.stringify(ingredientRows));
+    formData.append("modifierIds", JSON.stringify(selectedModifierIds));
+    if (applyDiscount && selectedDiscountId) {
+      formData.append("discountId", selectedDiscountId);
     } else {
-              formData.append("discountId", "");
+      formData.append("discountId", "");
     }
 
-            try {
+    try {
       const res = await fetch("/api/addMenu", {
-              method: "PUT",
-            body: formData,
+        method: "PUT",
+        body: formData,
       });
-            const data = await res.json();
+      const data = await res.json();
 
-            if (res.ok) {
-              toast.success("Menu berhasil diupdate!");
-            onMenuUpdatedAction();
-            onCloseAction();
+      if (res.ok) {
+        toast.success("Menu berhasil diupdate!");
+        onMenuUpdatedAction();
+        onCloseAction();
       } else {
-              toast.error("Gagal mengupdate menu: " + (data.message || "Unknown error"));
+        toast.error("Gagal mengupdate menu: " + (data.message || "Unknown error"));
       }
     } catch (error) {
-              console.error("Error updating menu:", error);
-            toast.error("Terjadi kesalahan saat mengupdate menu.");
+      console.error("Error updating menu:", error);
+      toast.error("Terjadi kesalahan saat mengupdate menu.");
     }
   };
 
-            return (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg inline-block mx-auto max-w-full max-h-[90vh] overflow-y-auto">
-                <h1 className="text-center text-2xl font-bold mb-6">Edit Menu</h1>
-                <form onSubmit={handleSubmit} encType="multipart/form-data">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block font-semibold mb-2">Nama Menu:</label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-2">Status:</label>
-                      <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        required
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                      >
-                        <option value="tersedia">Tersedia</option>
-                        <option value="habis">Habis</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-2">Price:</label>
-                      <input
-                        type="number"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        required
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-2">Category:</label>
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        required
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                      >
-                        {categories.map((cat) => (
-                          <option key={cat.id} value={cat.kategori}>
-                            {cat.kategori}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Section Ingredients */}
-                  <div className="mb-4 border-t pt-4">
-                    <h2 className="text-xl font-semibold mb-2">Ingredients</h2>
-                    {ingredientRows.map((row, index) => {
-                      const selectedIngredient = availableIngredients.find(
-                        (ing) => ing.id === row.ingredientId
-                      );
-                      return (
-                        <div key={index} className="flex gap-2 items-center mb-2">
-                          <select
-                            value={row.ingredientId}
-                            onChange={(e) =>
-                              updateIngredientRow(index, "ingredientId", parseInt(e.target.value))
-                            }
-                            required
-                            className="flex-1 p-2 border border-gray-300 rounded"
-                          >
-                            <option value={0}>Pilih Ingredient</option>
-                            {availableIngredients.map((ing) => (
-                              <option key={ing.id} value={ing.id}>
-                                {ing.name}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="number"
-                              placeholder="Amount"
-                              value={row.amount}
-                              onChange={(e) =>
-                                updateIngredientRow(index, "amount", parseFloat(e.target.value))
-                              }
-                              required
-                              className="p-2 border border-gray-300 rounded"
-                            />
-                            {selectedIngredient?.unit && (
-                              <span className="ml-2">{selectedIngredient.unit}</span>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeIngredientRow(index)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={addIngredientRow}
-                      className="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                    >
-                      Add Ingredient
-                    </button>
-                  </div>
-
-                  {/* Section Modifier */}
-                  <div className="mb-4 border-t pt-4">
-                    <h2 className="text-xl font-semibold mb-2">Modifiers</h2>
-                    <label className="block font-semibold mb-2">
-                      Pilih Modifier:
-                      <select
-                        onChange={(e) => addModifier(parseInt(e.target.value))}
-                        value={0}
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                      >
-                        <option value={0}>Pilih Modifier</option>
-                        {availableModifiers
-                          .filter((mod) => !selectedModifierIds.includes(mod.id))
-                          .map((mod) => (
-                            <option key={mod.id} value={mod.id}>
-                              {mod.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    {selectedModifierIds.length > 0 && (
-                      <div className="mt-4">
-                        <h3 className="font-semibold">Modifier yang Dipilih:</h3>
-                        <ul className="list-disc pl-5">
-                          {selectedModifierIds.map((modId) => {
-                            const modifier = availableModifiers.find((m) => m.id === modId);
-                            return (
-                              <li key={modId} className="flex items-center justify-between py-1">
-                                <span>{modifier?.name}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removeModifier(modId)}
-                                  className="text-red-500 hover:text-red-700"
-                                >
-                                  Remove
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section Diskon */}
-                  <div className="mb-4 border-t pt-4">
-                    <h2 className="text-xl font-semibold mb-2">Diskon</h2>
-                    <label className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        checked={applyDiscount}
-                        onChange={(e) => setApplyDiscount(e.target.checked)}
-                        className="mr-2"
-                      />
-                      Terapkan Diskon untuk Menu ini
-                    </label>
-                    {applyDiscount && (
-                      <div>
-                        <label className="block font-semibold mb-2">
-                          Pilih Diskon:
-                          <select
-                            value={selectedDiscountId}
-                            onChange={(e) => setSelectedDiscountId(e.target.value)}
-                            required={applyDiscount}
-                            className="w-full p-2 border border-gray-300 rounded mt-1"
-                          >
-                            <option value="">Pilih Diskon</option>
-                            {availableDiscounts.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name} ({d.value}
-                                {d.type === "PERCENTAGE" ? "%" : ""})
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 mb-4">
-                    <div>
-                      <label className="block font-semibold mb-2">Deskripsi:</label>
-                      <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded mt-1 min-h-[80px] resize-y"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-2">Gambar:</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            setImage(e.target.files[0]);
-                          }
-                        }}
-                        className="w-full mt-1"
-                      />
-                      {imageUrl && !image && (
-                        <img src={imageUrl} alt="current menu" className="mt-2 max-h-40 object-cover" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-4">
-                    <button
-                      type="button"
-                      onClick={onCloseAction}
-                      className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                      Update Menu
-                    </button>
-                  </div>
-                </form>
-              </div>
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg inline-block mx-auto max-w-full max-h-[90vh] overflow-y-auto">
+        <h1 className="text-center text-2xl font-bold mb-6">Edit Menu</h1>
+        <form onSubmit={handleSubmit} encType="multipart/form-data">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block font-semibold mb-2">Nama Menu:</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full p-2 border border-gray-300 rounded mt-1"
+              />
             </div>
-            );
+            <div>
+              <label className="block font-semibold mb-2">Status:</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                required
+                className="w-full p-2 border border-gray-300 rounded mt-1"
+              >
+                <option value="tersedia">Tersedia</option>
+                <option value="habis">Habis</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-semibold mb-2">Price:</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+                className="w-full p-2 border border-gray-300 rounded mt-1"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-2">Category:</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+                className="w-full p-2 border border-gray-300 rounded mt-1"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.kategori}>
+                    {cat.kategori}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Section Ingredients */}
+          <div className="mb-4 border-t pt-4">
+            <h2 className="text-xl font-semibold mb-2">Ingredients</h2>
+            {ingredientRows.map((row, index) => {
+              const selectedIngredient = availableIngredients.find(
+                (ing) => ing.id === row.ingredientId
+              );
+              return (
+                <div key={index} className="flex gap-2 items-center mb-2">
+                  <select
+                    value={row.ingredientId}
+                    onChange={(e) =>
+                      updateIngredientRow(index, "ingredientId", parseInt(e.target.value))
+                    }
+                    required
+                    className="flex-1 p-2 border border-gray-300 rounded"
+                  >
+                    <option value={0}>Pilih Ingredient</option>
+                    {availableIngredients.map((ing) => (
+                      <option key={ing.id} value={ing.id}>
+                        {ing.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={row.amount}
+                      onChange={(e) =>
+                        updateIngredientRow(index, "amount", parseFloat(e.target.value))
+                      }
+                      required
+                      className="p-2 border border-gray-300 rounded"
+                    />
+                    {selectedIngredient?.unit && (
+                      <span className="ml-2">{selectedIngredient.unit}</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeIngredientRow(index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                  >
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={addIngredientRow}
+              className="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Add Ingredient
+            </button>
+          </div>
+
+          {/* Section Modifier */}
+          <div className="mb-4 border-t pt-4">
+            <h2 className="text-xl font-semibold mb-2">Modifiers</h2>
+            <label className="block font-semibold mb-2">
+              Pilih Modifier:
+              <select
+                onChange={(e) => addModifier(parseInt(e.target.value))}
+                value={0}
+                className="w-full p-2 border border-gray-300 rounded mt-1"
+              >
+                <option value={0}>Pilih Modifier</option>
+                {availableModifiers
+                  .filter((mod) => !selectedModifierIds.includes(mod.id))
+                  .map((mod) => (
+                    <option key={mod.id} value={mod.id}>
+                      {mod.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {selectedModifierIds.length > 0 && (
+              <div className="mt-4">
+                <h3 className="font-semibold">Modifier yang Dipilih:</h3>
+                <ul className="list-disc pl-5">
+                  {selectedModifierIds.map((modId) => {
+                    const modifier = availableModifiers.find((m) => m.id === modId);
+                    return (
+                      <li key={modId} className="flex items-center justify-between py-1">
+                        <span>{modifier?.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeModifier(modId)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Section Diskon */}
+          <div className="mb-4 border-t pt-4">
+            <h2 className="text-xl font-semibold mb-2">Diskon</h2>
+            <label className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                checked={applyDiscount}
+                onChange={(e) => setApplyDiscount(e.target.checked)}
+                className="mr-2"
+              />
+              Terapkan Diskon untuk Menu ini
+            </label>
+            {applyDiscount && (
+              <div>
+                <label className="block font-semibold mb-2">
+                  Pilih Diskon:
+                  <select
+                    value={selectedDiscountId}
+                    onChange={(e) => setSelectedDiscountId(e.target.value)}
+                    required={applyDiscount}
+                    className="w-full p-2 border border-gray-300 rounded mt-1"
+                  >
+                    <option value="">Pilih Diskon</option>
+                    {availableDiscounts.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.value}
+                        {d.type === "PERCENTAGE" ? "%" : ""})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 mb-4">
+            <div>
+              <label className="block font-semibold mb-2">Deskripsi:</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded mt-1 min-h-[80px] resize-y"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-2">Gambar:</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setImage(e.target.files[0]);
+                  }
+                }}
+                className="w-full mt-1"
+              />
+              {imageUrl && !image && (
+                <img src={imageUrl} alt="current menu" className="mt-2 max-h-40 object-cover" />
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={onCloseAction}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Update Menu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
-            //Add Modal Menu
-            interface ModifierCategory {
-              id: number;
-            name: string;
+//Add Modal Menu
+interface ModifierCategory {
+  id: number;
+  name: string;
 }
 
-            interface AddMenuModalProps {
-              onCloseAction: () => void;
+interface AddMenuModalProps {
+  onCloseAction: () => void;
   onMenuAddAction: () => void;
 }
 
-            export function AddMenuModal({onCloseAction, onMenuAddAction}: AddMenuModalProps) {
+export function AddMenuModal({ onCloseAction, onMenuAddAction }: AddMenuModalProps) {
   const [name, setName] = useState("");
-            const [description, setDescription] = useState("");
-            const [price, setPrice] = useState("");
-            const [image, setImage] = useState<File | null>(null);
-            const [status, setStatus] = useState("tersedia");
-            const [category, setCategory] = useState("makanan");
-            const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>([]);
-            const [availableIngredients, setAvailableIngredients] = useState<IngredientOption[]>([]);
-            const [categories, setCategories] = useState<Category[]>([]);
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [status, setStatus] = useState("tersedia");
+  const [category, setCategory] = useState("makanan");
+  const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>([]);
+  const [availableIngredients, setAvailableIngredients] = useState<IngredientOption[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-            // State untuk diskon
-            const [applyDiscount, setApplyDiscount] = useState<boolean>(false);
-              const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
-              const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
+  // State untuk diskon
+  const [applyDiscount, setApplyDiscount] = useState<boolean>(false);
+  const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
 
-                // State untuk modifier
-                const [availableModifiers, setAvailableModifiers] = useState<ModifierOption[]>([]);
-                const [selectedModifierIds, setSelectedModifierIds] = useState<number[]>([]); // Tetap array untuk mendukung beberapa modifier dari kategori berbeda
+  // State untuk modifier
+  const [availableModifiers, setAvailableModifiers] = useState<ModifierOption[]>([]);
+  const [selectedModifierIds, setSelectedModifierIds] = useState<number[]>([]); // Tetap array untuk mendukung beberapa modifier dari kategori berbeda
 
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await fetch("/api/menuCategory");
-                const data = await res.json();
-                setCategories(data.categories);
+        const data = await res.json();
+        setCategories(data.categories);
       } catch (error) {
-                  console.error("Error fetching categories:", error);
+        console.error("Error fetching categories:", error);
       }
     };
-                fetchCategories();
+    fetchCategories();
   }, []);
 
 
@@ -779,120 +808,120 @@ export default function ManagerMenusPage() {
     const fetchIngredients = async () => {
       try {
         const res = await fetch("/api/ingredients");
-                const data = await res.json();
-                setAvailableIngredients(data);
+        const data = await res.json();
+        setAvailableIngredients(data);
       } catch (error) {
-                  console.error("Error fetching ingredients:", error);
+        console.error("Error fetching ingredients:", error);
       }
     };
-                fetchIngredients();
+    fetchIngredients();
   }, []);
 
   useEffect(() => {
     const fetchDiscounts = async () => {
       try {
         const res = await fetch("/api/discount");
-                const data = await res.json();
+        const data = await res.json();
         const menuDiscounts = data.filter((d: Discount) => d.scope === "MENU");
-                setAvailableDiscounts(menuDiscounts);
+        setAvailableDiscounts(menuDiscounts);
       } catch (error) {
-                  console.error("Error fetching discounts:", error);
+        console.error("Error fetching discounts:", error);
       }
     };
-                fetchDiscounts();
+    fetchDiscounts();
   }, []);
 
   useEffect(() => {
     const fetchModifiers = async () => {
       try {
         const res = await fetch("/api/modifier");
-                const data = await res.json();
-                setAvailableModifiers(data);
+        const data = await res.json();
+        setAvailableModifiers(data);
       } catch (error) {
-                  console.error("Error fetching modifiers:", error);
+        console.error("Error fetching modifiers:", error);
       }
     };
-                fetchModifiers();
+    fetchModifiers();
   }, []);
 
   const addIngredientRow = () => {
-                  setIngredientRows([...ingredientRows, { ingredientId: 0, amount: 0 }]);
+    setIngredientRows([...ingredientRows, { ingredientId: 0, amount: 0 }]);
   };
 
   const updateIngredientRow = (index: number, field: keyof IngredientRow, value: number) => {
     const newRows = [...ingredientRows];
-                newRows[index] = {...newRows[index], [field]: value };
-                setIngredientRows(newRows);
+    newRows[index] = { ...newRows[index], [field]: value };
+    setIngredientRows(newRows);
   };
 
   const removeIngredientRow = (index: number) => {
     const newRows = ingredientRows.filter((_, i) => i !== index);
-                setIngredientRows(newRows);
+    setIngredientRows(newRows);
   };
 
   const addModifier = (modifierId: number) => {
     if (!selectedModifierIds.includes(modifierId) && modifierId !== 0) {
-                  setSelectedModifierIds([...selectedModifierIds, modifierId]);
+      setSelectedModifierIds([...selectedModifierIds, modifierId]);
     }
   };
 
   const removeModifier = (modifierId: number) => {
-                  setSelectedModifierIds(selectedModifierIds.filter((id) => id !== modifierId));
+    setSelectedModifierIds(selectedModifierIds.filter((id) => id !== modifierId));
   };
 
-                const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-                  e.preventDefault();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-                  if (!name || !price || !image) {
-                    toast.error("Name, Price, dan Image (untuk tambah) wajib diisi!");
-                  return;
+    if (!name || !price || !image) {
+      toast.error("Name, Price, dan Image (untuk tambah) wajib diisi!");
+      return;
     }
 
-                  const formData = new FormData();
-                  formData.append("name", name);
-                  formData.append("description", description);
-                  formData.append("price", parseFloat(price).toString());
-                  if (image) formData.append("image", image);
-                  formData.append("Status", status);
-                  formData.append("category", category);
-                  formData.append("ingredients", JSON.stringify(ingredientRows));
-                  formData.append("modifierIds", JSON.stringify(selectedModifierIds));
-                  if (applyDiscount && selectedDiscountId) formData.append("discountId", selectedDiscountId);
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", description);
+    formData.append("price", parseFloat(price).toString());
+    if (image) formData.append("image", image);
+    formData.append("Status", status);
+    formData.append("category", category);
+    formData.append("ingredients", JSON.stringify(ingredientRows));
+    formData.append("modifierIds", JSON.stringify(selectedModifierIds));
+    if (applyDiscount && selectedDiscountId) formData.append("discountId", selectedDiscountId);
 
-                  try {
+    try {
       const res = await fetch("/api/addMenu", {
-                    method:"POST",
-                  body: formData,
+        method: "POST",
+        body: formData,
       });
 
-                  const data = await res.json();
-                  console.log("Response API:", data);
+      const data = await res.json();
+      console.log("Response API:", data);
 
-                  if (res.ok) {
-                    toast.success("Berhasil buat Menu!");
-                  setName("");
-                  setDescription("");
-                  setPrice("");
-                  setImage(null);
-                  setStatus("tersedia");
-                  setCategory("makanan");
-                  setIngredientRows([]);
-                  setSelectedModifierIds([]);
-                  setApplyDiscount(false);
-                  setSelectedDiscountId("");
-                  onCloseAction();
-                  onMenuAddAction();
+      if (res.ok) {
+        toast.success("Berhasil buat Menu!");
+        setName("");
+        setDescription("");
+        setPrice("");
+        setImage(null);
+        setStatus("tersedia");
+        setCategory("makanan");
+        setIngredientRows([]);
+        setSelectedModifierIds([]);
+        setApplyDiscount(false);
+        setSelectedDiscountId("");
+        onCloseAction();
+        onMenuAddAction();
 
       } else {
-                    toast.error("Gagal menyimpan menu: " + (data.message || "Unknown error"));
+        toast.error("Gagal menyimpan menu: " + (data.message || "Unknown error"));
       }
     } catch (error) {
       if (error instanceof Error) {
-                    console.error("Error submitting form:", error.message);
-                  toast.error("Terjadi kesalahan: " + error.message);
+        console.error("Error submitting form:", error.message);
+        toast.error("Terjadi kesalahan: " + error.message);
       } else {
-                    console.error("Error submitting form:", error);
-                  toast.error("Terjadi kesalahan yang tidak diketahui.");
+        console.error("Error submitting form:", error);
+        toast.error("Terjadi kesalahan yang tidak diketahui.");
       }
     }
   };
@@ -900,258 +929,258 @@ export default function ManagerMenusPage() {
   // Kelompokkan modifier berdasarkan kategori
   const modifierGroups = availableModifiers.reduce((acc, mod) => {
     const categoryId = mod.category.id;
-                  if (!acc[categoryId]) {
-                    acc[categoryId] = { category: mod.category, modifiers: [] };
+    if (!acc[categoryId]) {
+      acc[categoryId] = { category: mod.category, modifiers: [] };
     }
-                  acc[categoryId].modifiers.push(mod);
-                  return acc;
-  }, { } as {[key: number]: {category: ModifierCategory; modifiers: ModifierOption[] } });
+    acc[categoryId].modifiers.push(mod);
+    return acc;
+  }, {} as { [key: number]: { category: ModifierCategory; modifiers: ModifierOption[] } });
 
-                  return (
-                  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg inline-block mx-auto max-w-full max-h-[90vh] overflow-y-auto">
-                      <h1 className="text-xl font-semibold mb-4">Tambah Menu</h1>
-                      <form onSubmit={handleSubmit} encType="multipart/form-data">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block font-semibold mb-2">
-                              Nama Menu:
-                              <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                                className="w-full p-2 border border-gray-300 rounded mt-1"
-                              />
-                            </label>
-                          </div>
-                          <div>
-                            <label className="block font-semibold mb-2">
-                              Price:
-                              <input
-                                type="number"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                                required
-                                className="w-full p-2 border border-gray-300 rounded mt-1"
-                              />
-                            </label>
-                          </div>
-                          <div>
-                            <label className="block font-semibold mb-2">
-                              Status:
-                              <select
-                                value={status}
-                                onChange={(e) => setStatus(e.target.value)}
-                                required
-                                className="w-full p-2 border border-gray-300 rounded mt-1"
-                              >
-                                <option value="tersedia">Tersedia</option>
-                                <option value="habis">Habis</option>
-                              </select>
-                            </label>
-                          </div>
-                          <div>
-                            <label className="block font-semibold mb-2">
-                              Category:
-                              <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                required
-                                className="w-full p-2 border border-gray-300 rounded mt-1"
-                              >
-                                {categories.map((cat) => (
-                                  <option key={cat.id} value={cat.kategori}>
-                                    {cat.kategori}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block font-semibold mb-2">
-                              Deskripsi:
-                              <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded mt-1 min-h-[80px] resize-y"
-                              />
-                            </label>
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block font-semibold mb-2">
-                              Gambar: {"(Wajib saat tambah)"}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  if (e.target.files) {
-                                    setImage(e.target.files[0]);
-                                  }
-                                }}
-                                className="w-full mt-1"
-                              />
-                            </label>
-                          </div>
-                        </div>
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg inline-block mx-auto max-w-full max-h-[90vh] overflow-y-auto">
+        <h1 className="text-xl font-semibold mb-4">Tambah Menu</h1>
+        <form onSubmit={handleSubmit} encType="multipart/form-data">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-semibold mb-2">
+                Nama Menu:
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1"
+                />
+              </label>
+            </div>
+            <div>
+              <label className="block font-semibold mb-2">
+                Price:
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1"
+                />
+              </label>
+            </div>
+            <div>
+              <label className="block font-semibold mb-2">
+                Status:
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1"
+                >
+                  <option value="tersedia">Tersedia</option>
+                  <option value="habis">Habis</option>
+                </select>
+              </label>
+            </div>
+            <div>
+              <label className="block font-semibold mb-2">
+                Category:
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded mt-1"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.kategori}>
+                      {cat.kategori}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="col-span-2">
+              <label className="block font-semibold mb-2">
+                Deskripsi:
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded mt-1 min-h-[80px] resize-y"
+                />
+              </label>
+            </div>
+            <div className="col-span-2">
+              <label className="block font-semibold mb-2">
+                Gambar: {"(Wajib saat tambah)"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setImage(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full mt-1"
+                />
+              </label>
+            </div>
+          </div>
 
-                        {/* Ingredients Section */}
-                        <div className="mt-6">
-                          <h2 className="text-xl font-semibold mb-4">Ingredients</h2>
-                          {ingredientRows.map((row, index) => {
-                            const selectedIngredient = availableIngredients.find(
-                              (ing) => ing.id === row.ingredientId
-                            );
-                            return (
-                              <div key={index} className="flex gap-4 items-center mb-4">
-                                <select
-                                  value={row.ingredientId}
-                                  onChange={(e) =>
-                                    updateIngredientRow(index, "ingredientId", parseInt(e.target.value))
-                                  }
-                                  required
-                                  className="flex-1 p-2 border border-gray-300 rounded"
-                                >
-                                  <option value={0}>Pilih Ingredient</option>
-                                  {availableIngredients.map((ing) => (
-                                    <option key={ing.id} value={ing.id}>
-                                      {ing.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <div className="flex items-center gap-2 flex-1">
-                                  <input
-                                    type="number"
-                                    placeholder="Amount"
-                                    value={row.amount}
-                                    onChange={(e) =>
-                                      updateIngredientRow(index, "amount", parseFloat(e.target.value))
-                                    }
-                                    required
-                                    className="p-2 border border-gray-300 rounded"
-                                  />
-                                  {selectedIngredient?.unit && <span>{selectedIngredient.unit}</span>}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removeIngredientRow(index)}
-                                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            );
-                          })}
-                          <button
-                            type="button"
-                            onClick={addIngredientRow}
-                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                          >
-                            Add Ingredient
-                          </button>
-                        </div>
-
-                        {/* Modifiers Section */}
-                        <div className="mt-6 border-t pt-4">
-                          <h2 className="text-xl font-semibold mb-4">Modifiers (Optional)</h2>
-                          {Object.entries(modifierGroups).map(([categoryId, group]) => (
-                            <div key={categoryId} className="mb-4">
-                              <label className="block font-semibold mb-2">
-                                {group.category.name}:
-                                <select
-                                  onChange={(e) => addModifier(parseInt(e.target.value))}
-                                  value={0}
-                                  className="w-full p-2 border border-gray-300 rounded mt-1"
-                                >
-                                  <option value={0}>Pilih {group.category.name}</option>
-                                  {group.modifiers
-                                    .filter((mod) => !selectedModifierIds.includes(mod.id))
-                                    .map((mod) => (
-                                      <option key={mod.id} value={mod.id}>
-                                        {mod.name} (Rp{mod.price.toLocaleString()})
-                                      </option>
-                                    ))}
-                                </select>
-                              </label>
-                            </div>
-                          ))}
-                          {selectedModifierIds.length > 0 && (
-                            <div className="mt-4">
-                              <h3 className="font-semibold">Modifier yang Dipilih:</h3>
-                              <ul className="list-disc pl-5">
-                                {selectedModifierIds.map((modId) => {
-                                  const modifier = availableModifiers.find((m) => m.id === modId);
-                                  return (
-                                    <li key={modId} className="flex items-center justify-between py-1">
-                                      <span>
-                                        {modifier?.name} (Rp{modifier?.price.toLocaleString()}) - {modifier?.category.name}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => removeModifier(modId)}
-                                        className="text-red-500 hover:text-red-700"
-                                      >
-                                        Remove
-                                      </button>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Discount Section */}
-                        <div className="mt-6 border-t pt-4">
-                          <h2 className="text-xl font-semibold mb-4">Discount (Optional)</h2>
-                          <label className="flex items-center mb-4">
-                            <input
-                              type="checkbox"
-                              checked={applyDiscount}
-                              onChange={(e) => setApplyDiscount(e.target.checked)}
-                              className="mr-2"
-                            />
-                            Terapkan Diskon untuk Menu ini
-                          </label>
-                          {applyDiscount && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="col-span-2">
-                                <label className="block font-semibold mb-2">
-                                  Pilih Diskon:
-                                  <select
-                                    value={selectedDiscountId}
-                                    onChange={(e) => setSelectedDiscountId(e.target.value)}
-                                    required={applyDiscount}
-                                    className="w-full p-2 border border-gray-300 rounded mt-1"
-                                  >
-                                    <option value="">Pilih Diskon</option>
-                                    {availableDiscounts.map((d) => (
-                                      <option key={d.id} value={d.id}>
-                                        {d.name} - {d.value} {d.type}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Button */}
-                        <div className="flex justify-end">
-                          <button type="button" onClick={onCloseAction} className="mr-4 px-4 py-2 border rounded">
-                            Batal
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                          >
-                            Tambah Menu
-                          </button>
-                        </div>
-                      </form>
-                    </div>
+          {/* Ingredients Section */}
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-4">Ingredients</h2>
+            {ingredientRows.map((row, index) => {
+              const selectedIngredient = availableIngredients.find(
+                (ing) => ing.id === row.ingredientId
+              );
+              return (
+                <div key={index} className="flex gap-4 items-center mb-4">
+                  <select
+                    value={row.ingredientId}
+                    onChange={(e) =>
+                      updateIngredientRow(index, "ingredientId", parseInt(e.target.value))
+                    }
+                    required
+                    className="flex-1 p-2 border border-gray-300 rounded"
+                  >
+                    <option value={0}>Pilih Ingredient</option>
+                    {availableIngredients.map((ing) => (
+                      <option key={ing.id} value={ing.id}>
+                        {ing.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={row.amount}
+                      onChange={(e) =>
+                        updateIngredientRow(index, "amount", parseFloat(e.target.value))
+                      }
+                      required
+                      className="p-2 border border-gray-300 rounded"
+                    />
+                    {selectedIngredient?.unit && <span>{selectedIngredient.unit}</span>}
                   </div>
-                  );
+                  <button
+                    type="button"
+                    onClick={() => removeIngredientRow(index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                  >
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={addIngredientRow}
+              className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Add Ingredient
+            </button>
+          </div>
+
+          {/* Modifiers Section */}
+          <div className="mt-6 border-t pt-4">
+            <h2 className="text-xl font-semibold mb-4">Modifiers (Optional)</h2>
+            {Object.entries(modifierGroups).map(([categoryId, group]) => (
+              <div key={categoryId} className="mb-4">
+                <label className="block font-semibold mb-2">
+                  {group.category.name}:
+                  <select
+                    onChange={(e) => addModifier(parseInt(e.target.value))}
+                    value={0}
+                    className="w-full p-2 border border-gray-300 rounded mt-1"
+                  >
+                    <option value={0}>Pilih {group.category.name}</option>
+                    {group.modifiers
+                      .filter((mod) => !selectedModifierIds.includes(mod.id))
+                      .map((mod) => (
+                        <option key={mod.id} value={mod.id}>
+                          {mod.name} (Rp{mod.price.toLocaleString()})
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
+            ))}
+            {selectedModifierIds.length > 0 && (
+              <div className="mt-4">
+                <h3 className="font-semibold">Modifier yang Dipilih:</h3>
+                <ul className="list-disc pl-5">
+                  {selectedModifierIds.map((modId) => {
+                    const modifier = availableModifiers.find((m) => m.id === modId);
+                    return (
+                      <li key={modId} className="flex items-center justify-between py-1">
+                        <span>
+                          {modifier?.name} (Rp{modifier?.price.toLocaleString()}) - {modifier?.category.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeModifier(modId)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Discount Section */}
+          <div className="mt-6 border-t pt-4">
+            <h2 className="text-xl font-semibold mb-4">Discount (Optional)</h2>
+            <label className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                checked={applyDiscount}
+                onChange={(e) => setApplyDiscount(e.target.checked)}
+                className="mr-2"
+              />
+              Terapkan Diskon untuk Menu ini
+            </label>
+            {applyDiscount && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block font-semibold mb-2">
+                    Pilih Diskon:
+                    <select
+                      value={selectedDiscountId}
+                      onChange={(e) => setSelectedDiscountId(e.target.value)}
+                      required={applyDiscount}
+                      className="w-full p-2 border border-gray-300 rounded mt-1"
+                    >
+                      <option value="">Pilih Diskon</option>
+                      {availableDiscounts.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} - {d.value} {d.type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Button */}
+          <div className="flex justify-end">
+            <button type="button" onClick={onCloseAction} className="mr-4 px-4 py-2 border rounded">
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Tambah Menu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 

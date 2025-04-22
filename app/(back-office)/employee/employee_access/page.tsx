@@ -334,6 +334,25 @@ export default function EmployeeAccess() {
     }));
   };
 
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this employee?")) return;
+    try {
+      const res = await fetch("/api/employeeRoles", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        await fetchRoles();
+        toast.success("Employee deleted successfully!");
+      } else {
+        toast.error("Failed to delete employee");
+      }
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      toast.error("Error deleting employee");
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-white text-black">
@@ -378,8 +397,13 @@ export default function EmployeeAccess() {
                     </button>
 
                     {/* Tombol "Edit Privileges" */}
-                    <button onClick={() => openEditForm(role)} className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200">
+                    <button onClick={() => openEditForm(role)} className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 mr-2">
                       Edit Privileges
+                    </button>
+
+                    {/* Tombol "Delete" */}
+                    <button onClick={() => handleDelete(role.id)} className="bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-200 mr-2">
+                      Delete
                     </button>
                   </td>
                 </tr>

@@ -6,7 +6,7 @@ const db = mysql.createPool({
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DATABASE,
     waitForConnections: true,
-    connectionLimit: 10, // jumlah maksimal koneksi aktif
+    connectionLimit: 500, // jumlah maksimal koneksi aktif
     queueLimit: 0,
 });
 

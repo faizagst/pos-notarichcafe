@@ -15,8 +15,8 @@ export default function LoginPage() {
 
   const router = useRouter();
 
-   // Cek apakah sudah login saat pertama kali render
-   useEffect(() => {
+  // Cek apakah sudah login saat pertama kali render
+  useEffect(() => {
     const checkSession = async () => {
       try {
         const meRes = await fetch('/api/auth/me', { credentials: 'include' })
@@ -209,7 +209,7 @@ export default function LoginPage() {
         {errorMessage && (
           <p className="text-center text-red-500 mb-4">{errorMessage}</p>
         )}
-  
+
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
@@ -250,9 +250,12 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
+        <div className="text-sm text-center text-blue-600 hover:underline mt-2">
+          <a href="/forgotPassword">Lupa password?</a>
+        </div>
         <div className="my-4 text-center text-gray-500">@Notarich Cafe 2025</div>
       </div>
     </div>
   );
-  
+
 }

@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         m.name AS menuName,
         m.price AS menuPrice
       FROM CompletedOrder co
-      JOIN OrderItem oi ON oi.orderId = co.id
+      JOIN CompletedOrderItem oi ON oi.orderId = co.id
       JOIN Menu m ON m.id = oi.menuId
       WHERE co.createdAt >= ? AND co.createdAt < ?
     `, [startDate, endDate]);
@@ -93,12 +93,12 @@ export async function GET(req: NextRequest) {
           menuName: item.menuName,
           sellingPrice: item.menuPrice,
           quantity: item.quantity,
-          totalSales: item.menuPrice * item.quantity,
+          totalSales: item.finalTotal* item.quantity,
         });
       } else {
         const existing = detailMap.get(key)!;
         existing.quantity += item.quantity;
-        existing.totalSales += item.menuPrice * item.quantity;
+        existing.totalSales += item.finalTotal * item.quantity;
       }
     }
 

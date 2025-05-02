@@ -39,6 +39,7 @@ type GrossDetail = {
   menuName: string;
   itemId: number;
   sellingPrice: number;
+  discount: number;
   quantity: number;
   itemTotalSelling: number;
   hpp: number;
@@ -52,6 +53,7 @@ type NetDetail = {
   itemId: number;
   sellingPrice: number;
   discount: number;
+  hpp: number;
   tax: number;
   gratuity: number;
   quantity: number;
@@ -164,8 +166,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         summary: {
           explanation:
-            "Total penjualan dihitung dengan menjumlahkan nilai finalTotal dari setiap order yang berhasil diselesaikan, termasuk efek diskon, pajak, dan gratuity.",
-          "Total Penjualan": totalSales,
+            "Total collected dihitung dengan menjumlahkan nilai total dari setiap order yang berhasil diselesaikan, termasuk efek diskon, pajak, dan gratuity.",
+          "Total Collected": `Rp ${Number(totalSales).toLocaleString()}`,
           "Jumlah Pesanan": orders.length,
         },
         details: orders,
@@ -191,44 +193,55 @@ export async function GET(req: NextRequest) {
     }
 
     if (metric === "gross") {
-      let totalSelling = 0;
+      let totalNetSales = 0;
       let totalHPP = 0;
       const details: GrossDetail[] = [];
-
+    
       for (const order of orders) {
+        const totalQuantity = order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
+        const fallbackDiscountPerUnit = totalQuantity ? order.discountAmount / totalQuantity : 0;
+        const isItemDiscountEmpty = order.orderItems.every((item) => item.itemDiscount === 0);
+    
         for (const item of order.orderItems) {
           const sellingPrice = item.menu.price;
           const hpp = item.menu.hargaBakul;
           const quantity = item.quantity;
-          const itemTotalSelling = sellingPrice * quantity;
+    
+          const itemDiscount = isItemDiscountEmpty ? fallbackDiscountPerUnit : item.itemDiscount;
+    
+          const netSellingPrice = sellingPrice - itemDiscount;
+          const itemTotalNetSales = netSellingPrice * quantity;
           const itemTotalHPP = hpp * quantity;
-          totalSelling += itemTotalSelling;
+    
+          totalNetSales += itemTotalNetSales;
           totalHPP += itemTotalHPP;
+    
           details.push({
             orderId: order.id,
             orderDate: order.createdAt,
             menuName: item.menu.name,
             itemId: item.id,
-            sellingPrice,
+            sellingPrice: sellingPrice,
+            discount: itemDiscount,
             quantity,
-            itemTotalSelling,
+            itemTotalSelling: itemTotalNetSales,
             hpp,
             itemTotalHPP,
           });
         }
       }
-
+    
       return NextResponse.json({
         summary: {
-          explanation:
-            "Laba Kotor dihitung dengan mengurangi total HPP dari total penjualan normal (tanpa diskon).",
-          "Total Penjualan": totalSelling,
-          "Total HPP": totalHPP,
-          "Laba Kotor": totalSelling - totalHPP,
+          explanation: "Laba Kotor = Net Sales - HPP, di mana Net Sales = Harga Jual - Diskon.",
+          "Total Net sales": `Rp ${Number(totalNetSales).toLocaleString()}`,
+          "Total HPP": `Rp ${Number(totalHPP).toLocaleString()}`,
+          "Laba Kotor": `Rp ${Number(totalNetSales - totalHPP).toLocaleString()}`,
         },
         details,
       });
     }
+    
 
     if (metric === "net") {
         let totalSelling = 0;
@@ -281,26 +294,27 @@ export async function GET(req: NextRequest) {
               itemId: item.id,
               sellingPrice,
               discount: itemDiscount,
+              hpp,
               tax: itemTax,
               gratuity: itemGratuity,
               quantity,
               itemNetProfit,
+              
             });
           }
         }
-      
         return NextResponse.json({
           summary: {
             explanation:
-              "Laba Bersih dihitung dengan formula: (Harga Jual - HPP - Diskon - Pajak - Gratuity) per item dikalikan jumlah item.",
-            "Total Penjualan": totalSelling,
-            "Total HPP": totalHPP,
-            "Total Diskon": totalDiscounts,
-            "Total Pajak": totalTax,
-            "Total Gratuity": totalGratuity,
+              "Laba Bersih = Net Sales - HPP - Pajak - Gratuity, di mana Net Sales = Harga Jual - Diskon.",
+            "Total Net Sales": `Rp ${Number(totalSelling - totalDiscounts).toLocaleString()}`,
+            "Total HPP": `Rp ${Number(totalHPP).toLocaleString()}`,
+            "Total Diskon": `Rp ${Number(totalDiscounts).toLocaleString()}`,
+            "Total Pajak": `Rp ${Number(totalTax).toLocaleString()}`,
+            "Total Gratuity": `Rp ${Number(totalGratuity).toLocaleString()}`,
             "Laba Bersih":
-              totalSelling - totalHPP - totalDiscounts - totalTax - totalGratuity,
-            Formula: "Net Sales = Gross Sales - Discounts - Refunds (Refunds = 0)",
+              `Rp ${Number(totalSelling - totalDiscounts - totalHPP - totalTax - totalGratuity).toLocaleString()}`,
+            Formula: "Laba Bersih = (Harga Jual - Diskon - HPP - Pajak - Gratuity) * jumlah item",
           },
           details,
         });
@@ -313,8 +327,8 @@ export async function GET(req: NextRequest) {
       const totalDiscounts = orders.reduce((acc, order) => acc + Number(order.discountAmount || 0), 0);
       return NextResponse.json({
         summary: {
-          explanation: "Total diskon dihitung dari discountAmount semua order.",
-          "Total Diskon": totalDiscounts,
+          explanation: "Total diskon dari semua order.",
+          "Total Diskon": `Rp ${Number(totalDiscounts).toLocaleString()}`,
         },
         details: orders,
       });
@@ -324,8 +338,8 @@ export async function GET(req: NextRequest) {
       const totalTax = orders.reduce((acc, order) => acc + Number(order.taxAmount || 0), 0);
       return NextResponse.json({
         summary: {
-          explanation: "Total pajak dihitung dari taxAmount semua order.",
-          "Total Pajak": totalTax,
+          explanation: "Total pajak dari semua order.",
+          "Total Pajak": `Rp ${Number(totalTax).toLocaleString()}`,
         },
         details: orders,
       });
@@ -335,8 +349,8 @@ export async function GET(req: NextRequest) {
       const totalGratuity = orders.reduce((acc, order) => acc + Number(order.gratuityAmount || 0), 0);
       return NextResponse.json({
         summary: {
-          explanation: "Total gratuity dihitung dari gratuityAmount semua order.",
-          "Total Gratuity": totalGratuity,
+          explanation: "Total gratuity dari semua order.",
+          "Total Gratuity": `Rp ${Number(totalGratuity).toLocaleString()}`,
         },
         details: orders,
       });

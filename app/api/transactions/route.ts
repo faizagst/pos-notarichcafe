@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       `SELECT o.id, o.createdAt, o.total, o.finalTotal, o.discountAmount,
               i.quantity, m.name AS menuName, m.price AS menuPrice
        FROM completedOrder o
-       LEFT JOIN orderItem i ON i.orderId = o.id
+       LEFT JOIN completedOrderItem i ON i.orderId = o.id
        LEFT JOIN menu m ON i.menuId = m.id
        WHERE o.createdAt >= ? AND o.createdAt < ?
        ORDER BY o.createdAt ASC`,

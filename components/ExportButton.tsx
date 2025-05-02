@@ -5,23 +5,23 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// Definisi tipe untuk konfigurasi kolom
 interface ColumnConfig {
   header: string;
   key: string;
 }
 
-// Definisi tipe props dengan generik untuk data
 interface ExportButtonProps<T extends Record<string, unknown>> {
   data: T[];
   columns: ColumnConfig[];
   fileName: string;
+  dropdownAlign?: "left" | "right"; // <--- Tambahkan ini
 }
 
 export const ExportButton = <T extends Record<string, unknown>>({
   data,
   columns,
   fileName,
+  dropdownAlign = "right", // Default ke kanan
 }: ExportButtonProps<T>) => {
   const [open, setOpen] = useState(false);
 
@@ -60,7 +60,11 @@ export const ExportButton = <T extends Record<string, unknown>>({
         Export
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md z-10">
+        <div
+          className={`absolute mt-2 w-40 bg-white shadow-lg rounded-md z-10 ${
+            dropdownAlign === "left" ? "left-0" : "right-0"
+          }`}
+        >
           <button
             onClick={exportToPdf}
             className="block w-full text-left px-4 py-2 hover:bg-gray-100"

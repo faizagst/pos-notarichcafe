@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
         const quantity = item.quantity || 0;
         const price = Number(item.menu_price || 0);
         const cost = Number(item.menu_cost || 0);
-        grossSales += (price - cost) * quantity;
+        grossSales += price * quantity;
       }
 
       const sample = orderRows[0];

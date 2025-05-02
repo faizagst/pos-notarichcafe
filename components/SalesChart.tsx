@@ -226,7 +226,7 @@ export default function SalesChart() {
 
       {/* Export & Revenue */}
       <div className="flex gap-4 mb-6">
-        <ExportButton data={exportData} columns={exportColumns} fileName="laporan_penjualan" />
+        <ExportButton data={exportData} columns={exportColumns} fileName="laporan_penjualan" dropdownAlign="left"/>
       </div>
       <div className="mb-6">
         <p className="text-lg font-semibold text-[#212121]">

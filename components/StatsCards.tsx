@@ -6,8 +6,8 @@ import { useState, useEffect } from "react";
 interface Metrics {
   totalSales: number; // finalTotal
   transactions: number;
-  grossProfit: number; // Gross Sales
-  netProfit: number; // Net Sales
+  grossProfit: number; 
+  netProfit: number;
   discounts: number;
   tax: number;
   gratuity: number;
@@ -60,6 +60,7 @@ interface GrossDetail {
   menuName: string;
   itemId: number; 
   sellingPrice: number;
+  discount: number;
   quantity: number;
   itemTotalSelling: number;
   hpp: number;
@@ -73,6 +74,7 @@ interface NetDetail {
   itemId: number; 
   sellingPrice: number;
   discount: number;
+  hpp: number;
   tax: number;
   gratuity: number;
   quantity: number;
@@ -108,19 +110,26 @@ const StatCard: React.FC<StatCardProps> = ({
   icon,
   color,
   onClick,
-}) => (
-  <div
-    className="p-6 bg-white shadow-md rounded-xl flex items-center gap-4 transition-transform hover:scale-105 cursor-pointer"
-    onClick={onClick}
-  >
-    <div className={`text-4xl ${color}`}>{icon}</div>
-    <div>
-      <div className="text-lg font-semibold text-[#212121]">{title}</div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-sm text-gray-500">{percentage}</div>
+}) => {
+  // Logika untuk menentukan warna berdasarkan tanda persentase
+  const isPositive = percentage.startsWith("+");
+  const percentageColor = isPositive ? "text-green-500" : percentage.startsWith("-") ? "text-red-500" : "text-gray-500";
+  
+  return (
+    <div
+      className="p-6 bg-white shadow-md rounded-xl flex items-center gap-4 transition-transform hover:scale-105 cursor-pointer"
+      onClick={onClick}
+    >
+      <div className={`text-4xl ${color}`}>{icon}</div>
+      <div>
+        <div className="text-lg font-semibold text-[#212121]">{title}</div>
+        <div className="text-2xl font-bold">{value}</div>
+        <div className={`text-sm ${percentageColor}`}>{percentage}</div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 // ======= COMPONENT MODAL DETAIL PENJUALAN =======
 const SalesDetailsModal: React.FC<SalesDetailsModalProps> = ({
@@ -156,6 +165,7 @@ const SalesDetailsModal: React.FC<SalesDetailsModalProps> = ({
             <th className="border p-2">Tanggal</th>
             <th className="border p-2">Menu</th>
             <th className="border p-2">Harga Jual</th>
+            <th className="border p-2">Diskon</th>
             <th className="border p-2">Jumlah</th>
             <th className="border p-2">Total Sales</th>
             <th className="border p-2">HPP</th>
@@ -170,6 +180,7 @@ const SalesDetailsModal: React.FC<SalesDetailsModalProps> = ({
             <th className="border p-2">Menu</th>
             <th className="border p-2">Harga Jual</th>
             <th className="border p-2">Diskon</th>
+            <th className="border p-2">HPP</th>
             <th className="border p-2">Pajak</th>
             <th className="border p-2">Gratuity</th>
             <th className="border p-2">Jumlah</th>
@@ -223,6 +234,7 @@ const SalesDetailsModal: React.FC<SalesDetailsModalProps> = ({
               <td className="border p-2">{new Date(item.orderDate).toLocaleDateString()}</td>
               <td className="border p-2">{item.menuName}</td>
               <td className="border p-2">Rp {Number(item.sellingPrice).toLocaleString()}</td>
+              <td className="border p-2">Rp {Number(item.discount).toLocaleString()}</td>
               <td className="border p-2">{item.quantity}</td>
               <td className="border p-2">Rp {Number(item.itemTotalSelling).toLocaleString()}</td>
               <td className="border p-2">Rp {Number(item.hpp).toLocaleString()}</td>
@@ -238,6 +250,7 @@ const SalesDetailsModal: React.FC<SalesDetailsModalProps> = ({
               <td className="border p-2">{item.menuName}</td>
               <td className="border p-2">Rp {Number(item.sellingPrice).toLocaleString()}</td>
               <td className="border p-2">Rp {Number(item.discount).toLocaleString()}</td>
+              <td className="border p-2">Rp {Number(item.hpp).toLocaleString()}</td>
               <td className="border p-2">Rp {Number(item.tax).toLocaleString()}</td>
               <td className="border p-2">Rp {Number(item.gratuity).toLocaleString()}</td>
               <td className="border p-2">{item.quantity}</td>
@@ -372,10 +385,11 @@ export default function StatsCards() {
   }, [selectedPeriod, selectedDate]);
 
   const getPercentageChange = (current: number, previous: number) => {
-    if (previous === 0) return current > 0 ? "100.00%" : "0.00%";
+    if (previous === 0) return current > 0 ? "+100.00%" : "0.00%";
     const change = ((current - previous) / previous) * 100;
-    return `${change.toFixed(2)}%`;
+    return `${change > 0 ? "+" : ""}${change.toFixed(2)}%`;
   };
+  
 
   const handleCardClick = async (
     type: "sales" | "transactions" | "gross" | "net" | "discounts" | "tax" | "gratuity"
@@ -391,7 +405,7 @@ export default function StatsCards() {
       let title = "";
       switch (type) {
         case "sales":
-          title = "Detail Total Penjualan";
+          title = "Detail Total Collected";
           break;
         case "transactions":
           title = "Detail Transaksi";
@@ -439,14 +453,10 @@ export default function StatsCards() {
             onChange={(e) => setSelectedPeriod(e.target.value)}
             className="p-2 border rounded bg-[#FFFAF0] text-[#212121] shadow-sm"
           >
-            <option value="daily">Hari Ini</option>
-            <option value="daily-prev">Hari Sebelumnya</option>
-            <option value="weekly">Minggu Ini</option>
-            <option value="weekly-prev">Minggu Lalu</option>
-            <option value="monthly">Bulan Ini</option>
-            <option value="monthly-prev">Bulan Lalu</option>
-            <option value="yearly">Tahun Ini</option>
-            <option value="yearly-prev">Tahun Lalu</option>
+            <option value="daily">Harian</option>
+            <option value="weekly">Mingguan</option>
+            <option value="monthly">Bulanan</option>
+            <option value="yearly">Tahunan</option>
           </select>
         </div>
         <div className="flex gap-2 items-center">
@@ -467,7 +477,7 @@ export default function StatsCards() {
         {currentMetrics && previousMetrics && (
           <>
             <StatCard
-              title="Total Penjualan"
+              title="Total Collected"
               value={`Rp ${currentMetrics.totalSales.toLocaleString()}`}
               percentage={getPercentageChange(
                 currentMetrics.totalSales,

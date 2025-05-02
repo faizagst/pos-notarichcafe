@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
+import { format } from 'date-fns-tz';
 
 interface SalesPerTransactionData {
   date: string;
@@ -21,7 +22,7 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
 
   while (current <= end) {
     if (period === 'daily') {
-      result.push(current.toISOString().split('T')[0]);
+      result.push(format(current, 'yyyy-MM-dd', { timeZone: 'Asia/Jakarta' }));
       current.setDate(current.getDate() + 1);
     } else if (period === 'weekly') {
       const year = current.getFullYear();
@@ -29,10 +30,10 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
       result.push(`${year}-W${String(week).padStart(2, '0')}`);
       current.setDate(current.getDate() + 7);
     } else if (period === 'monthly') {
-      result.push(`${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`);
+      result.push(format(current, 'yyyy-MM', { timeZone: 'Asia/Jakarta' }));
       current.setMonth(current.getMonth() + 1);
     } else if (period === 'yearly') {
-      result.push(`${current.getFullYear()}`);
+      result.push(format(current, 'yyyy', { timeZone: 'Asia/Jakarta' }));
       current.setFullYear(current.getFullYear() + 1);
     }
   }
@@ -50,7 +51,6 @@ export async function GET(req: NextRequest) {
   let startDate = start ? new Date(start) : null;
   let endDate = end ? new Date(end) : null;
 
-  // Handle dynamic period like "daily-prev", "weekly-prev", etc.
   if (!startDate && dateParam && period) {
     const isPrev = period.endsWith('-prev');
     const basePeriod = period.replace('-prev', '');
@@ -87,13 +87,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (startDate) {
+    startDate.setHours(0, 0, 0, 0);
+  }
+
   if (endDate) {
     endDate.setHours(23, 59, 59, 999);
   }
 
   let query = '';
-  let values: any[] = [];
-  let mapFn: (item: any) => SalesPerTransactionData;
 
   try {
     switch (period) {
@@ -157,12 +159,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid period' }, { status: 400 });
     }
 
-    values = [startDate, startDate, endDate, endDate];
-
+    const values = [startDate, startDate, endDate, endDate];
     const [rows] = await db.query<RowDataPacket[]>(query, values);
-    const rawResult = rows.map((item: any) => ({
-      date: item.label,
-      salesPerTransaction: Number(item.netSales) / Number(item.transactionCount),
+
+    const rawResult = rows.map(row => ({
+      date: row.label,
+      salesPerTransaction: Number(row.transactionCount) === 0 ? 0 : Number(row.netSales) / Number(row.transactionCount),
     }));
 
     const defaultKeys = generateDateRange(period, startDate!, endDate!);

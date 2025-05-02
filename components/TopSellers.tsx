@@ -16,8 +16,9 @@ type Period = "daily" | "weekly" | "monthly" | "yearly";
 export default function TopSellers() {
   const [topSellers, setTopSellers] = useState<TopSeller[]>([]);
   const [period, setPeriod] = useState<Period>("daily");
-  const [date, setDate] = useState<string>("");
-
+  const [date, setDate] = useState(() =>
+    new Date().toISOString().split("T")[0]
+  );
   useEffect(() => {
     async function fetchTopSellers() {
       try {
@@ -123,6 +124,7 @@ export default function TopSellers() {
           data={exportData}
           columns={exportColumns}
           fileName="laporan_top_sellers"
+          dropdownAlign="left"
         />
       </div>
 

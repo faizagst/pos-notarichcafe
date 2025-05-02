@@ -220,6 +220,7 @@ export default function SalesTransactionChart() {
           data={exportData}
           columns={exportColumns}
           fileName="laporan_sales_per_transaction"
+          dropdownAlign="left"
         />
       </div>
 
@@ -277,7 +278,7 @@ export default function SalesTransactionChart() {
               <div className="mt-4">
                 <div className="mb-4 p-4 bg-gray-100 rounded">
                   <p>
-                    <strong>Net Sales:</strong> Rp{" "}
+                    <strong>Total Collected:</strong> Rp{" "}
                     {Number(selectedDetail.summary.netSales).toLocaleString()}
                   </p>
                   <p>
@@ -297,7 +298,7 @@ export default function SalesTransactionChart() {
                         <th className="border px-2 py-1">Menu</th>
                         <th className="border px-2 py-1">Harga Jual</th>
                         <th className="border px-2 py-1">Jumlah Terjual</th>
-                        <th className="border px-2 py-1">Total Sales</th>
+                        <th className="border px-2 py-1">Total Collected</th>
                       </tr>
                     </thead>
                     <tbody>

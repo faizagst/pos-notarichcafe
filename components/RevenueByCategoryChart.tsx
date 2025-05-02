@@ -58,6 +58,7 @@ export default function RevenueByCategoryChart() {
             { header: "Total Pendapatan", key: "Total Pendapatan" },
           ]}
           fileName="laporan_pendapatan_kategori"
+          dropdownAlign="left"
         />
       </div>
 

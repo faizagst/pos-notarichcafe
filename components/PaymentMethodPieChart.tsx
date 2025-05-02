@@ -17,7 +17,9 @@ export default function PaymentMethodPieChart() {
   const [data, setData] = useState<PaymentMethodData[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [period, setPeriod] = useState<Period>("daily");
-  const [date, setDate] = useState<string>("");
+  const [date, setDate] = useState(() =>
+    new Date().toISOString().split("T")[0]
+  );
 
   useEffect(() => {
     async function fetchData() {

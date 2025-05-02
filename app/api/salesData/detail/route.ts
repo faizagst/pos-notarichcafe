@@ -26,30 +26,34 @@ export async function GET(req: NextRequest) {
   let endDate: Date;
 
   try {
-    if (period === "daily") {
+    // Default "custom" period to "daily"
+    const periodToUse = period === "custom" ? "daily" : period;
+
+    if (periodToUse === "daily") {
       startDate = new Date(date);
       endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 1);
-    } else if (period === "weekly") {
+    } else if (periodToUse === "weekly") {
       startDate = getStartOfISOWeek(date);
       endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 7);
-    } else if (period === "monthly") {
+    } else if (periodToUse === "monthly") {
       const [year, month] = date.split("-");
       startDate = new Date(Number(year), Number(month) - 1, 1);
       endDate = new Date(Number(year), Number(month), 1);
-    } else if (period === "yearly") {
+    } else if (periodToUse === "yearly") {
       const year = Number(date);
       startDate = new Date(year, 0, 1);
       endDate = new Date(year + 1, 0, 1);
     } else {
-      startDate = new Date(date);
-      endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 1);
+      return NextResponse.json({ error: "Invalid period" }, { status: 400 });
     }
 
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
     // Summary
-    const [summaryRow]: any[] = await db.query(
+    const [summaryResult]: any[] = await db.query(
       `SELECT COUNT(*) AS totalOrders, COALESCE(SUM(finalTotal), 0) AS totalSales
        FROM completedOrder
        WHERE createdAt >= ? AND createdAt < ?`,
@@ -57,32 +61,32 @@ export async function GET(req: NextRequest) {
     );
 
     const summary = {
-      totalOrders: Number(summaryRow[0]?.totalOrders || 0),
-      totalSales: Number(summaryRow[0]?.totalSales || 0),
+      totalOrders: Number(summaryResult[0]?.totalOrders || 0),
+      totalSales: Number(summaryResult[0]?.totalSales || 0),
     };
 
-    // Order details
+    // Detail Orders
     const [orderRows]: any[] = await db.query(
       `SELECT 
-        co.id AS orderId,
-        co.createdAt,
-        co.finalTotal,
-        oi.quantity,
-        m.name AS menuName,
-        m.price
-      FROM completedOrder co
-      JOIN orderItem oi ON oi.orderId = co.id
-      JOIN menu m ON m.id = oi.menuId
-      WHERE co.createdAt >= ? AND co.createdAt < ?
-      ORDER BY co.createdAt DESC`,
+         co.id AS orderId,
+         co.createdAt,
+         co.finalTotal,
+         oi.quantity,
+         m.name AS menuName,
+         m.price
+       FROM completedOrder co
+       JOIN completedOrderItem oi ON oi.orderId = co.id
+       JOIN menu m ON m.id = oi.menuId
+       WHERE co.createdAt >= ? AND co.createdAt < ?
+       ORDER BY co.createdAt DESC`,
       [startDate, endDate]
     );
 
-    const orderMap = new Map<number, any>();
+    const ordersMap = new Map<number, any>();
 
     for (const row of orderRows) {
-      if (!orderMap.has(row.orderId)) {
-        orderMap.set(row.orderId, {
+      if (!ordersMap.has(row.orderId)) {
+        ordersMap.set(row.orderId, {
           orderId: row.orderId,
           createdAt: row.createdAt,
           total: Number(row.finalTotal),
@@ -90,7 +94,7 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      orderMap.get(row.orderId).items.push({
+      ordersMap.get(row.orderId).items.push({
         menuName: row.menuName,
         quantity: row.quantity,
         price: Number(row.price),
@@ -99,7 +103,7 @@ export async function GET(req: NextRequest) {
 
     const response = {
       summary,
-      orders: Array.from(orderMap.values()),
+      orders: Array.from(ordersMap.values()),
     };
 
     return NextResponse.json(response, { status: 200 });

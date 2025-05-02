@@ -22,6 +22,7 @@ interface GrossMarginData {
 interface MenuDetail {
   menuName: string;
   sellingPrice: number;
+  discount: number;
   hpp: number;
   quantity: number;
   totalSales: number;
@@ -214,7 +215,7 @@ export default function GrossMarginChart() {
       </div>
 
       <div className="flex gap-4 mb-6">
-        <ExportButton data={exportData} columns={exportColumns} fileName="laporan_gross_margin" />
+        <ExportButton data={exportData} columns={exportColumns} fileName="laporan_gross_margin" dropdownAlign="left"/>
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
@@ -292,9 +293,10 @@ export default function GrossMarginChart() {
                       <tr>
                         <th className="border px-2 py-1">Menu</th>
                         <th className="border px-2 py-1">Harga Jual</th>
+                        <th className="border px-2 py-1">Diskon</th>
                         <th className="border px-2 py-1">Harga Bakul (HPP)</th>
                         <th className="border px-2 py-1">Jumlah Terjual</th>
-                        <th className="border px-2 py-1">Total Sales</th>
+                        <th className="border px-2 py-1">Net sales</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -305,11 +307,14 @@ export default function GrossMarginChart() {
                             Rp {Number(item.sellingPrice).toLocaleString()}
                           </td>
                           <td className="border px-2 py-1">
+                            Rp {Number(item.discount).toLocaleString()}
+                          </td>
+                          <td className="border px-2 py-1">
                             Rp {Number(item.hpp).toLocaleString()}
                           </td>
                           <td className="border px-2 py-1">{item.quantity}</td>
                           <td className="border px-2 py-1">
-                            Rp {Number(item.totalSales).toLocaleString()}
+                            Rp {Number((item.totalSales - item.discount)).toLocaleString()}
                           </td>
                         </tr>
                       ))}

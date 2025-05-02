@@ -1,4 +1,3 @@
-// app/api/sales-metrics/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
@@ -125,13 +124,13 @@ export async function GET(req: NextRequest) {
 
       for (const item of items) {
         if (item.quantity && item.menuPrice !== null && item.menuHargaBakul !== null) {
-          const margin = (Number(item.menuPrice) - Number(item.menuHargaBakul)) * item.quantity;
+          const margin = (Number(item.menuPrice)- Number(item.discountAmount) - Number(item.menuHargaBakul)) * item.quantity;
           grossProfit += margin;
         }
       }
     }
 
-    const netProfit = grossProfit - discounts - tax - gratuity;
+    const netProfit = grossProfit - tax - gratuity;
 
     const response: Metrics = {
       totalSales,

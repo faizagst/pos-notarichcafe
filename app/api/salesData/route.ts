@@ -88,13 +88,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (startDate) {
-    startDate.setHours(0, 0, 0, 0); // Set ke awal hari
-    startDate.setMinutes(startDate.getMinutes() + 420); // Tambah 7 jam untuk WIB
+    startDate.setHours(0, 0, 0, 0);
   }
 
   if (endDate) {
-    endDate.setHours(23, 59, 59, 999); // Set ke akhir hari
-    endDate.setMinutes(endDate.getMinutes() + 420); // Tambah 7 jam untuk WIB
+    endDate.setHours(23, 59, 59, 999);
   }
 
   let query = '';
@@ -102,7 +100,7 @@ export async function GET(req: NextRequest) {
     switch (period) {
       case 'daily':
         query = `
-          SELECT DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y-%m-%d') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)
@@ -113,7 +111,7 @@ export async function GET(req: NextRequest) {
 
       case 'weekly':
         query = `
-          SELECT DATE_FORMAT(CONVERT_TZ(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '+00:00', '+07:00'), '%Y-W%v') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-W%v') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)
@@ -124,7 +122,7 @@ export async function GET(req: NextRequest) {
 
       case 'monthly':
         query = `
-          SELECT DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y-%m') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(createdAt, '%Y-%m') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)
@@ -135,7 +133,7 @@ export async function GET(req: NextRequest) {
 
       case 'yearly':
         query = `
-          SELECT DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y') AS label, SUM(finalTotal) AS total
+          SELECT DATE_FORMAT(createdAt, '%Y') AS label, SUM(finalTotal) AS total
           FROM completedOrder
           WHERE (? IS NULL OR createdAt >= ?)
             AND (? IS NULL OR createdAt <= ?)

@@ -70,3 +70,12 @@ body {
     @apply bg-background text-foreground;
   }
 }
+/* Untuk Chrome, Edge, dan Opera */
+input::-ms-reveal,
+input::-ms-clear,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+  pointer-events: none;
+  opacity: 0;
+}
+

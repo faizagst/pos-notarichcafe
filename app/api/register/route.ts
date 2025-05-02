@@ -12,6 +12,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Data tidak lengkap atau token tidak tersedia" }, { status: 400 });
     }
 
+    // Validasi password: minimal 8 karakter, harus mengandung huruf dan angka
+    const isValidPassword = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+    if (!isValidPassword) {
+      return NextResponse.json({
+        message: "Password minimal 8 karakter dan harus mengandung huruf serta angka."
+      }, { status: 400 });
+    }
+
     // Ambil data employee berdasarkan token
     const [rows]: any = await db.query(
       `SELECT e.*, r.name AS roleName FROM employee e 

@@ -100,6 +100,7 @@ export default function ManagerMenusPage() {
                 setFilteredMenus(filteredMenus.map(menu =>
                     menu.id === menuId ? { ...menu, isActive: newIsActive } : menu
                 ));
+                toast.success(`Menu berhasil di${newIsActive ? "aktifkan" : "nonaktifkan"}`);
             } else {
                 toast.error("Gagal mengubah status menu.");
             }
@@ -116,7 +117,7 @@ export default function ManagerMenusPage() {
             <div className="mb-4 flex justify-end">
                 <input
                     type="text"
-                    placeholder="Search Category..."
+                    placeholder="Search Menu..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-1/3 p-2 border border-gray-300 rounded"

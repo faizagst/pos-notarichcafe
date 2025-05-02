@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
         m.id AS menu_id,
         m.name AS menu_name,
         m.price AS menu_price,
+        m.hargaBakul AS menu_hargaBakul,
         m.type AS menu_type,
         m.description AS menu_description,
         m.image AS menu_image
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
     `, [bundleIds]);
 
     const compositionsMap: Record<number, any[]> = {};
+    
     for (const comp of compositions) {
       if (!compositionsMap[comp.bundleId]) compositionsMap[comp.bundleId] = [];
 
@@ -46,6 +48,7 @@ export async function GET(req: NextRequest) {
           id: comp.menu_id,
           name: comp.menu_name,
           price: comp.menu_price,
+          hargaBakul: comp.menu_hargaBakul,
           type: comp.menu_type,
           description: comp.menu_description,
           image: comp.menu_image,

@@ -105,7 +105,7 @@ const RekapStokGudang = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">No</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Nama Ingridient</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Start</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Purchase Order</th>
@@ -117,7 +117,7 @@ const RekapStokGudang = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {data.map((gudang, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gudang.gudang.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gudang.gudang.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{gudang.start}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{gudang.stockIn}</td>

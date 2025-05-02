@@ -9,6 +9,7 @@ interface SummaryRaw {
 interface MenuDetail {
   menuName: string;
   sellingPrice: number;
+  discount: number;
   hpp: number;
   quantity: bigint | number;
   totalSales: number;
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
   try {
     // Query Net Sales langsung dari CompletedOrder
     const [netSalesRows] = await db.execute(
-      `SELECT SUM(finalTotal) as netSales
+      `SELECT SUM(total - discountAmount) as netSales
    FROM CompletedOrder
    WHERE createdAt >= ? AND createdAt < ?`,
       [startDate, endDate]
@@ -108,6 +109,7 @@ export async function GET(req: NextRequest) {
         m.name as menuName,
         m.price as sellingPrice,
         m.hargaBakul as hpp,
+        co.discountAmount as discount,
         SUM(ci.quantity) as quantity,
         SUM(m.price * ci.quantity) as totalSales
       FROM CompletedOrder co

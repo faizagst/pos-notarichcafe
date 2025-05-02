@@ -89,8 +89,8 @@ export async function PUT(req: NextRequest) {
             `
             INSERT INTO completedOrder (
                 originalOrderId, tableNumber, total, discountId, discountAmount,
-                taxAmount, gratuityAmount, finalTotal, paymentMethod, paymentId, createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                taxAmount, gratuityAmount, finalTotal, paymentMethod, paymentId, createdAt, roundingAmount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 order.id,
@@ -104,6 +104,7 @@ export async function PUT(req: NextRequest) {
                 order.paymentMethod,
                 order.paymentId,
                 new Date(),
+                order.roundingAmount
             ]
         );
 

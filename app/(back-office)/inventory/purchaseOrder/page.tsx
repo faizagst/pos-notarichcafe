@@ -111,7 +111,7 @@ const PurchaseOrderForm: React.FC = () => {
       const data = await response.json();
       setPurchaseOrders(data);
     } catch (err) {
-      alert("Error fetching purchase orders");
+      toast.error("Tanggal hari harus di isi terlebih dahulu")
     }
   };
 

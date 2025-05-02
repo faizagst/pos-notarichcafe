@@ -100,7 +100,7 @@ const DailyIngredientStock = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Ingredient ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">No</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Ingredient Name</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Start</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Stock In</th>
@@ -112,7 +112,7 @@ const DailyIngredientStock = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {data.map((item, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.ingredient.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.ingredient.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{item.start}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{item.stockIn}</td>

@@ -6,11 +6,11 @@ import { RowDataPacket } from "mysql2";
 interface CategorySalesResponse {
   category: string;
   itemSold: number;
-  totalCollected: number;
+  netSales: number; // sebelumnya totalCollected
   discount: number;
   tax: number;
   gratuity: number;
-  netSales: number;
+  totalCollected: number; // sebelumnya netSales
 }
 
 function getStartAndEndDates(period: string, dateString?: string): { startDate: Date; endDate: Date } {
@@ -85,7 +85,6 @@ export async function GET(req: NextRequest) {
     );
 
     const aggregatedData: Record<string, CategorySalesResponse> = {};
-
     const groupedOrders: Record<number, any[]> = {};
 
     // Grouping order items by orderId
@@ -100,7 +99,6 @@ export async function GET(req: NextRequest) {
     for (const [orderIdStr, items] of Object.entries(groupedOrders)) {
       const orderId = Number(orderIdStr);
       const order = items[0];
-
       const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
       const discountPerItem = totalItems > 0 ? Number(order.discountAmount || 0) / totalItems : 0;
       const taxPerItem = totalItems > 0 ? Number(order.taxAmount || 0) / totalItems : 0;
@@ -117,25 +115,25 @@ export async function GET(req: NextRequest) {
           aggregatedData[category] = {
             category,
             itemSold: 0,
-            totalCollected: 0,
+            netSales: 0, // sekarang berisi netSales sebelumnya totalCollected
             discount: 0,
             tax: 0,
             gratuity: 0,
-            netSales: 0,
+            totalCollected: 0, // sekarang berisi netSales sebelumnya
           };
         }
 
         aggregatedData[category].itemSold += quantity;
-        aggregatedData[category].totalCollected += itemCollected;
+        aggregatedData[category].netSales += itemCollected; // sebelumnya totalCollected
         aggregatedData[category].discount += discountPerItem * quantity;
         aggregatedData[category].tax += taxPerItem * quantity;
         aggregatedData[category].gratuity += gratuityPerItem * quantity;
-        aggregatedData[category].netSales += itemCollected + taxPerItem * quantity + gratuityPerItem * quantity - discountPerItem * quantity;
+        aggregatedData[category].totalCollected += itemCollected + taxPerItem * quantity + gratuityPerItem * quantity; // sebelumnya netSales
       }
     }
 
     const result = Object.values(aggregatedData).sort(
-      (a, b) => b.totalCollected - a.totalCollected
+      (a, b) => b.netSales - a.netSales // urut berdasarkan nilai netSales terbaru
     );
 
     return NextResponse.json(result);

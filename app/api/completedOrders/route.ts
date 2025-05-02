@@ -111,6 +111,8 @@ export async function GET(req: NextRequest) {
       discountAmount: order.discountAmount,
       taxAmount: order.taxAmount,
       gratuityAmount: order.gratuityAmount,
+      roundingAmount: order.roundingAmount,
+      finalTotal: order.finalTotal,
       paymentMethod: order.paymentMethod,
       paymentId: order.paymentId,
       createdAt: new Date(order.createdAt).toISOString(),

@@ -7,6 +7,21 @@ export async function POST(req: NextRequest) {
 
   try {
     const today = new Date();
+    const todayDate = today.toISOString().split("T")[0];
+
+    // Cek apakah reset sudah dilakukan hari ini
+    const [alreadyReset] = await connection.execute(
+      `SELECT COUNT(*) as count FROM dailyIngredientStock WHERE DATE(date) = ?`,
+      [todayDate]
+    ) as any[];
+
+    if (alreadyReset[0].count > 0) {
+      connection.release();
+      return NextResponse.json(
+        { message: "Stok hari ini sudah di-reset." },
+        { status: 400 }
+      );
+    }
 
     // Ambil semua data ingredient
     const [ingredients] = await connection.execute(`
@@ -14,7 +29,7 @@ export async function POST(req: NextRequest) {
     `) as any[];
 
     for (const ingredient of ingredients) {
-      // Insert snapshot harian ke dailyIngredientStock
+      // Simpan snapshot
       await connection.execute(
         `
         INSERT INTO dailyIngredientStock 
@@ -22,7 +37,7 @@ export async function POST(req: NextRequest) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
-          today,
+          todayDate,
           ingredient.id,
           ingredient.name,
           ingredient.start,
@@ -34,7 +49,7 @@ export async function POST(req: NextRequest) {
         ]
       );
 
-      // Reset transaksi harian dan set ulang start/stock
+      // Reset transaksi harian
       await connection.execute(
         `
         UPDATE ingredient 

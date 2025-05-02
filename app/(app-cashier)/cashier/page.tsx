@@ -78,6 +78,7 @@ export interface Order {
   discountAmount: number;
   taxAmount: number;
   gratuityAmount: number;
+  roundingAmount: number;
   finalTotal: number;
   status: string;
   paymentMethod?: string;
@@ -163,19 +164,19 @@ export default function KasirPage() {
   const unreadCount = notifications.filter((notif) => !notif.isRead).length;
   const [isPaymentMethodPopupOpen, setIsPaymentMethodPopupOpen] = useState(false);
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
-   useEffect(() => {
-      const fetchUser = async () => {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          setUser({
-            username: data.user.username,
-            role: data.user.role,
-          });
-        }
-      };
-      fetchUser();
-    }, []);
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setUser({
+          username: data.user.username,
+          role: data.user.role,
+        });
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleResetDailyStock = async () => {
     const confirmed = confirm("Apakah Anda yakin ingin mereset stok harian?");
@@ -233,7 +234,7 @@ export default function KasirPage() {
         if (!menuResponse.ok) throw new Error(`Failed to fetch menus: ${menuResponse.status}`);
         const menuData = await menuResponse.json();
         setMenus(menuData);
-  
+
         const discountResponse = await fetch("/api/discount");
         if (!discountResponse.ok) throw new Error(`Failed to fetch discounts: ${discountResponse.status}`);
         const discountData = await discountResponse.json();
@@ -242,37 +243,37 @@ export default function KasirPage() {
         console.error("Error fetching menus or discounts:", error);
       }
     };
-  
+
     fetchMenusAndDiscounts();
     fetchOrders();
-  
+
     const socketIo = io(SOCKET_URL, {
       path: "/api/socket",
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 5000,
     });
-  
+
     socketIo.on("connect", () => console.log("Terhubung ke WebSocket server:", socketIo.id));
-  
+
     socketIo.on("menuUpdated", (data) => {
       console.log("Menu telah diperbarui:", data);
-      
+
       setMenus((prevMenus) =>
         prevMenus.map((menu) =>
           menu.id === data.menuId
-            ? { ...menu, Status: data.Status, isActive: data.isActive }  
+            ? { ...menu, Status: data.Status, isActive: data.isActive }
             : menu
         )
       );
       fetchMenusAndDiscounts();
     });
-  
+
     socketIo.on("ordersUpdated", (data: any) => {
       console.log("Pesanan diperbarui di Kasir:", data);
       fetchOrders();
     });
-  
+
     socketIo.on("paymentStatusUpdated", (updatedOrder: Order) => {
       console.log("Status pembayaran diperbarui:", updatedOrder);
       setOrders((prevOrders) =>
@@ -290,13 +291,13 @@ export default function KasirPage() {
         )
       );
     });
-  
+
     socketIo.on("reservationDeleted", ({ reservasiId, orderId }) => {
       console.log("Reservasi dihapus di Kasir:", { reservasiId, orderId });
       setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
       fetchOrders();
     });
-  
+
     socketIo.on("reservationUpdated", (updatedReservasi) => {
       console.log("Reservasi diperbarui:", updatedReservasi);
       setOrders((prevOrders) =>
@@ -307,22 +308,22 @@ export default function KasirPage() {
         )
       );
     });
-  
+
     socketIo.on("tableStatusUpdated", ({ tableNumber }) => {
       console.log(`Status meja diperbarui di Kasir: ${tableNumber}`);
       fetchOrders();
     });
-  
+
     socketIo.on("disconnect", () => console.log("Socket terputus"));
-  
+
     setSocket(socketIo);
-  
+
     return () => {
       socketIo.disconnect();
       console.log("WebSocket disconnected");
     };
   }, []);
-  
+
 
   const confirmPayment = async (
     orderId: number,
@@ -456,11 +457,11 @@ export default function KasirPage() {
       const existingItemIndex = prevCart.findIndex(
         (item) => item.uniqueKey === uniqueKey
       );
-  
+
       const maxBeli = menu.maxBeli ?? Infinity; // Jika tidak ada, default ke tak terbatas
-  
+
       let updatedCart;
-  
+
       if (existingItemIndex !== -1) {
         const existingItem = prevCart[existingItemIndex];
         if (existingItem.quantity >= maxBeli) {
@@ -468,7 +469,7 @@ export default function KasirPage() {
           alert(`Maksimum pembelian untuk ${menu.name} adalah ${maxBeli}`);
           return prevCart;
         }
-  
+
         updatedCart = prevCart.map((item, index) =>
           index === existingItemIndex
             ? { ...item, quantity: item.quantity + 1 }
@@ -483,7 +484,7 @@ export default function KasirPage() {
           uniqueKey,
         }];
       }
-  
+
       fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -492,11 +493,11 @@ export default function KasirPage() {
         .then((res) => res.json())
         .then((data) => console.log("Cart sent to API:", data))
         .catch((err) => console.error("Error sending cart:", err));
-  
+
       return updatedCart;
     });
   };
-  
+
 
   const handleModifierToggle = (modifierId: number) => {
     setSelectedModifiers((prev) =>
@@ -741,9 +742,18 @@ export default function KasirPage() {
     totalDiscountAmount = Math.min(totalDiscountAmount, subtotalWithModifiers);
 
     const subtotalAfterAllDiscounts = subtotalWithModifiers - (totalDiscountAmount - totalMenuDiscountAmount);
-    const taxAmount = subtotalAfterAllDiscounts * 0.10;
-    const gratuityAmount = subtotalAfterAllDiscounts * 0.02;
-    const finalTotal = subtotalAfterAllDiscounts + taxAmount + gratuityAmount;
+
+    // Helper function
+    const ceilToInteger = (num: number) => Math.ceil(num); // bulat ke atas ke integer
+    const ceilToHundreds = (num: number) => Math.ceil(num / 100) * 100;
+
+    const taxAmount = ceilToInteger(subtotalAfterAllDiscounts * 0.10);
+    const gratuityAmount = ceilToInteger(subtotalAfterAllDiscounts * 0.02);
+
+    const rawTotal = subtotalAfterAllDiscounts + taxAmount + gratuityAmount;
+    const finalTotal = ceilToHundreds(rawTotal);
+
+    const roundingAmount = finalTotal - rawTotal;
 
     return {
       subtotal,
@@ -753,8 +763,10 @@ export default function KasirPage() {
       taxAmount,
       gratuityAmount,
       finalTotal,
+      roundingAmount,
     };
   };
+
 
   const activeOrders = orders.filter((order) => order.status !== "Selesai");
   const completedOrders = orders.filter((order) => order.status === "Selesai");
@@ -999,6 +1011,7 @@ export default function KasirPage() {
                     <p>Diskon: Rp {calculateCartTotals().totalDiscountAmount.toLocaleString()}</p>
                     <p>Pajak (10%): Rp {calculateCartTotals().taxAmount.toLocaleString()}</p>
                     <p>Gratuity (2%): Rp {calculateCartTotals().gratuityAmount.toLocaleString()}</p>
+                    <p>Rounding: Rp {calculateCartTotals().roundingAmount.toLocaleString()}</p>
                     <p className="font-semibold">
                       Total Bayar: Rp {calculateCartTotals().finalTotal.toLocaleString()}
                     </p>
@@ -1553,7 +1566,8 @@ function OrderSection({
     discount: number;
     tax: number;
     gratuity: number;
-  }>({ subtotal: 0, modifier: 0, discount: 0, tax: 0, gratuity: 0 });
+    rounding: number;
+  }>({ subtotal: 0, modifier: 0, discount: 0, tax: 0, gratuity: 0, rounding: 0 });
   const [isCombinedPaymentModalOpen, setIsCombinedPaymentModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -1574,16 +1588,24 @@ function OrderSection({
 
     const discount = selectedOrdersData.reduce((acc, order) => acc + (order.discountAmount || 0), 0);
     const subtotalAfterDiscount = subtotal + modifier - discount;
-    const tax = subtotalAfterDiscount * 0.10;
-    const gratuity = subtotalAfterDiscount * 0.02;
-    const finalTotal = subtotalAfterDiscount + tax + gratuity;
 
+    // --- Helper rounding function ---
+    const ceilToInteger = (num: number) => Math.ceil(num); // bulat ke atas ke bilangan bulat
+    const ceilToHundreds = (num: number) => Math.ceil(num / 100) * 100; // bulat ke atas ke ratusan
+
+    const tax = ceilToInteger(subtotalAfterDiscount * 0.10);
+    const gratuity = ceilToInteger(subtotalAfterDiscount * 0.02);
+    const rawTotal = subtotalAfterDiscount + tax + gratuity;
+    const finalTotal = ceilToHundreds(rawTotal);
+
+    const rounding = finalTotal - rawTotal;
     setCombinedDetails({
       subtotal,
       modifier,
       discount,
       tax,
       gratuity,
+      rounding,
     });
     setCombinedTotal(finalTotal);
   }, [selectedOrders, orders]);
@@ -1625,6 +1647,7 @@ function OrderSection({
       discountAmount: combinedDetails.discount,
       taxAmount: combinedDetails.tax,
       gratuityAmount: combinedDetails.gratuity,
+      roundingAmount: combinedDetails.rounding,
       finalTotal: combinedTotal,
       paymentMethod,
       orderItems: selectedOrdersData.flatMap((o) => o.orderItems),
@@ -1637,7 +1660,7 @@ function OrderSection({
     generateCombinedPDF(combinedOrder);
     setSelectedOrders([]);
     setCombinedTotal(0);
-    setCombinedDetails({ subtotal: 0, modifier: 0, discount: 0, tax: 0, gratuity: 0 });
+    setCombinedDetails({ subtotal: 0, modifier: 0, discount: 0, tax: 0, gratuity: 0, rounding: 0 });
     setIsCombinedPaymentModalOpen(false);
   };
 
@@ -1710,7 +1733,7 @@ function OrderSection({
           onCancel={() => {
             setSelectedOrders([]);
             setCombinedTotal(0);
-            setCombinedDetails({ subtotal: 0, modifier: 0, discount: 0, tax: 0, gratuity: 0 });
+            setCombinedDetails({ subtotal: 0, modifier: 0, discount: 0, tax: 0, gratuity: 0, rounding: 0 });
             setIsCombinedPaymentModalOpen(false);
           }}
           discounts={discounts}
@@ -1778,9 +1801,18 @@ function OrderItemComponent({
     totalDiscountAmount = Math.min(totalDiscountAmount, subtotal + totalModifierCost);
 
     const baseForTaxAndGratuity = subtotal + totalModifierCost - totalDiscountAmount;
-    const taxAmount = baseForTaxAndGratuity * 0.10;
-    const gratuityAmount = baseForTaxAndGratuity * 0.02;
-    const finalTotal = baseForTaxAndGratuity + taxAmount + gratuityAmount;
+
+    // --- Helper rounding function ---
+    const ceilToInteger = (num: number) => Math.ceil(num); // bulat ke atas ke bilangan bulat
+    const ceilToHundreds = (num: number) => Math.ceil(num / 100) * 100; // bulat ke atas ke ratusan
+
+    const taxAmount = ceilToInteger(baseForTaxAndGratuity * 0.10);
+    const gratuityAmount = ceilToInteger(baseForTaxAndGratuity * 0.02);
+
+    const rawTotal = baseForTaxAndGratuity + taxAmount + gratuityAmount;
+    const finalTotal = ceilToHundreds(rawTotal);
+
+    const roundingAmount = finalTotal - rawTotal;
 
     return {
       subtotal,
@@ -1789,6 +1821,7 @@ function OrderItemComponent({
       taxAmount,
       gratuityAmount,
       finalTotal,
+      roundingAmount,
     };
   };
 
@@ -1867,6 +1900,9 @@ function OrderItemComponent({
         <p>Diskon: <span className="font-semibold">Rp {localDiscountAmount.toLocaleString()}</span></p>
         <p>Pajak: <span className="font-semibold">Rp {localTaxAmount.toLocaleString()}</span></p>
         <p>Gratuity: <span className="font-semibold">Rp {localGratuityAmount.toLocaleString()}</span></p>
+        {order.roundingAmount && (
+          <p>Rounding: <span className="font-semibold">Rp {order.roundingAmount.toLocaleString()}</span></p>
+        )}
         <p className="font-semibold">
           Total Bayar: Rp {localFinalTotal.toLocaleString()}
         </p>
@@ -2210,7 +2246,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function isKitchenItem(item: OrderItem): boolean {
-const category = item.menu.category?.trim().toLowerCase?.() ?? "";
+  const category = item.menu.category?.trim().toLowerCase?.() ?? "";
 
   if (category === "bundle") {
     const hasKitchen = item.menu.bundleCompositions.some((bundleItem) =>
@@ -2233,7 +2269,7 @@ function isBarItem(item: OrderItem): boolean {
     console.log(`Bundle ${item.menu.name} has Bar items: ${hasBar}`);
     return hasBar;
   }
-  return ["coffee", "tea", "frappe", "juice", "milk base", "refresher", "cocorich", "mocktail","minuman"].includes(category);
+  return ["coffee", "tea", "frappe", "juice", "milk base", "refresher", "cocorich", "mocktail", "minuman"].includes(category);
 }
 function printKitchenAndBarOrders(order: Order) {
   const kitchenItems = order.orderItems.filter(isKitchenItem);
@@ -2472,6 +2508,12 @@ function generatePDF(order: Order) {
   doc.text("Gratuity (2%)", labelX, yPosition);
   doc.text(":", colonX, yPosition);
   doc.text("Rp " + order.gratuityAmount.toLocaleString(), valueX, yPosition);
+  yPosition += 5;
+
+  checkPage();
+  doc.text("Rounding", labelX, yPosition);
+  doc.text(":", colonX, yPosition);
+  doc.text("Rp " + order.roundingAmount.toLocaleString(), valueX, yPosition);
   yPosition += 5;
 
   checkPage();
@@ -2744,6 +2786,12 @@ function generateCombinedPDF(order: Order) {
   doc.text("Gratuity (2%)", labelX, yPosition);
   doc.text(":", colonX, yPosition);
   doc.text("Rp " + order.gratuityAmount.toLocaleString(), valueX, yPosition);
+  yPosition += 5;
+
+  checkPage();
+  doc.text("Rounding", labelX, yPosition);
+  doc.text(":", colonX, yPosition);
+  doc.text("Rp " + order.roundingAmount.toLocaleString(), valueX, yPosition);
   yPosition += 5;
 
   checkPage();

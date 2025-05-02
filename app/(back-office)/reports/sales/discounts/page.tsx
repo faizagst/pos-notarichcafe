@@ -96,7 +96,7 @@ const DiscountReport = () => {
     { header: "Name", key: "Name" },
     { header: "Discount", key: "Discount" },
     { header: "Count", key: "Count" },
-    { header: "Gross Discount", key: "Gross Discount" },
+    { header: "Total Discount", key: "Gross Discount" },
   ];
 
   return (
@@ -176,7 +176,7 @@ const DiscountReport = () => {
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Discount</th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Count</th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Gross Discount</th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total Discount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

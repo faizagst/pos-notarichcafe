@@ -127,14 +127,18 @@ export default function GudangTable() {
         method: "POST",
       });
       const result = await res.json();
-      toast.success(result.message);
-      if (res.ok) {
-        router.push("/recapNotarich/stockInventory");
+      if (!res.ok) {
+        toast.error(result.message);
+        return;
       }
+    
+      toast.success(result.message); 
+      router.push("/recapNotarich/stockInventory");
     } catch (error) {
       console.error("Error resetting daily stock:", error);
+      toast.error("Terjadi kesalahan saat mereset stok harian.");
     }
-  };
+  }
 
   // Filter gudang yang stock akhir <= stockMin
   const lowStockItems = gudangList.filter(

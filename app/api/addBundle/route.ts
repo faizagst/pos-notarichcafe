@@ -46,8 +46,8 @@ async function parseMultipartFormData(req: NextRequest): Promise<FormData> {
   });
 
   const res_ = {
-    setHeader: () => {},
-    end: () => {},
+    setHeader: () => { },
+    end: () => { },
   };
 
   // Jalankan multer untuk parsing
@@ -82,12 +82,31 @@ export async function POST(req: NextRequest) {
       imagePath = `/uploads/${filename}`;
     }
 
+    //cari HPP
+    let totalHargaBakul = 0;
+    if (includedMenus) {
+      const parsed = JSON.parse(includedMenus); // array of { menuId, amount }
+
+      for (const row of parsed) {
+        const [rows] = await db.execute(
+          `SELECT hargaBakul FROM Menu WHERE id = ?`,
+          [row.menuId]
+        );
+
+        if ((rows as any[]).length === 0) continue;
+
+        const harga = (rows as any[])[0].hargaBakul || 0;
+        totalHargaBakul += harga * row.amount;
+      }
+    }
+
     // Simpan bundle ke database
     const [result] = await db.execute(
-      `INSERT INTO Menu (name, description, image, price, category, Status, type)
-       VALUES (?, ?, ?, ?, 'bundle', 'tersedia', 'BUNDLE')`,
-      [name, description || null, imagePath, parseFloat(price)]
+      `INSERT INTO Menu (name, description, image, price, category, Status, type, hargaBakul)
+       VALUES (?, ?, ?, ?, 'bundle', 'tersedia', 'BUNDLE', ?)`,
+      [name, description || null, imagePath, parseFloat(price), totalHargaBakul]
     );
+    
 
     const newBundleId = (result as any).insertId;
 

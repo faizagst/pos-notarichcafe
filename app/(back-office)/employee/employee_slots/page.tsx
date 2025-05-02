@@ -218,14 +218,14 @@ export default function EmployeeSlots() {
 
               <div>
                 <label className="block mb-1 font-medium">Email</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded p-2" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded p-2" required  />
               </div>
 
               <div>
                 <label className="block mb-1 font-medium">Phone</label>
                 <div className="flex">
                   <span className="p-2 bg-gray-100 border rounded-l">+62</span>
-                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))} className="flex-1 border rounded-r p-2" placeholder="8123456789" pattern="[0-9]{9,13}" />
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))} className="flex-1 border rounded-r p-2" placeholder="8123456789" pattern="[0-9]{9,13}" required />
                 </div>
               </div>
 

@@ -7,6 +7,7 @@ interface Bundle {
   name: string;
   image: string;
   price: number;
+  hargaBakul: number;
   Status: string;
   bundleCompositions: {
     id: number;
@@ -148,6 +149,7 @@ const BundlesPage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Bundle</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu yang Digunakan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Bakul</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">Diskon</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modifiers</th>
@@ -176,6 +178,7 @@ const BundlesPage: React.FC = () => {
                         : '-'}
                     </td>
                     <td className="px-6 py-4">{bundle.price}</td>
+                    <td className="px-6 py-4">{bundle.hargaBakul}</td>
                     <td className="px-6 py-4">{bundle.Status}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                     {bundle.discounts && bundle.discounts.length > 0 ? (

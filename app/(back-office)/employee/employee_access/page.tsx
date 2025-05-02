@@ -279,37 +279,39 @@ export default function EmployeeAccess() {
         appPermissions,
         backofficePermissions,
       };
-
+  
       let method = "POST";
       let url = "/api/employeeRoles";
       if (isEditMode && editingRoleId) {
         method = "PUT";
         (payload as any).id = editingRoleId;
       }
-
+  
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+  
+      const responseData = await res.json();
+  
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to submit role");
+        if (res.status === 409) {
+          toast.error(responseData.error || "Role name already exists");
+          return;
+        }
+        toast.error(responseData.error || "Failed to submit role");
+        return;
       }
-
-      if (isEditMode) {
-        toast.success("Role updated successfully!");
-      } else {
-        toast.success("Role created successfully!");
-      }
-
+  
+      toast.success(isEditMode ? "Role updated successfully!" : "Role created successfully!");
       await fetchRoles();
       setShowForm(false);
-    } catch (error: any) {
-      console.error("Error submitting role:", error);
-      toast.error(error.message || "Error submitting role");
+    } catch {
+      toast.error("Unexpected error occurred");
     }
   };
+  
 
   // ===================== TOGGLE PARENT CHECKBOX =====================
   const toggleParentPermission = (

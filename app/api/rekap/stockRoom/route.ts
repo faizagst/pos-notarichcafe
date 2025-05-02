@@ -2,8 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
 export async function POST(req: NextRequest) {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+
   try {
     const today = new Date();
+    const todayDate = today.toISOString().split("T")[0];
+
+        // Cek apakah reset sudah dilakukan hari ini
+        const [alreadyReset] = await connection.execute(
+          `SELECT COUNT(*) as count FROM dailyGudangStock WHERE DATE(date) = ?`,
+          [todayDate]
+        ) as any[];
+    
+        if (alreadyReset[0].count > 0) {
+          connection.release();
+          return NextResponse.json(
+            { message: "Stok hari ini sudah di-reset." },
+            { status: 400 }
+          );
+        }
 
     // Ambil semua data gudang
     const [gudangs]: any[] = await db.execute(`SELECT * FROM gudang`);
@@ -15,7 +33,7 @@ export async function POST(req: NextRequest) {
           (date, gudangId, gudangName, start, stockIn, used, wasted, stock, stockMin) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          today,
+          todayDate,
           gudang.id,
           gudang.name,
           gudang.start,
@@ -35,6 +53,8 @@ export async function POST(req: NextRequest) {
         [gudang.stock, gudang.stock, gudang.id]
       );
     }
+    await connection.commit();
+    connection.release();
 
     return NextResponse.json({
       message: "Daily gudang stock reset successful and history saved.",

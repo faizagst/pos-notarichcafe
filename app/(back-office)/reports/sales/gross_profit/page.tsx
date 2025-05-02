@@ -11,6 +11,7 @@ interface GrossProfitData {
     refunds: number;
     netSales: number;
     cogs: number;
+    grossProfit: number;
   };
   details: {
     orderId: number;
@@ -101,6 +102,7 @@ const GrossProfit = () => {
   const netSales = data?.summary?.netSales ?? 0;
   const cogs = data?.summary?.cogs ?? 0;
   const cogsPercentage = netSales > 0 ? ((cogs / netSales) * 100).toFixed(2) : "0.00";
+  const grossProfit = data?.summary?.grossProfit ?? 0;
 
   const tableData = data
     ? [
@@ -119,6 +121,7 @@ const GrossProfit = () => {
     { header: "Refunds", key: "Refunds" },
     { header: "Net Sales", key: "Net Sales" },
     { header: "COGS", key: "COGS" },
+    { header: "Gross Profit", key: "Gross Profit" },
   ];
 
   return (
@@ -219,6 +222,14 @@ const GrossProfit = () => {
             <span>
               {formatCurrency(cogs)}{" "}
               <span className="text-red-500">({cogsPercentage}%)</span>
+            </span>
+          </div>
+          <hr className="my-2" />
+          <div className="flex justify-between font-bold mb-2">
+            <span>Gross Profit</span>
+            <span>
+              {formatCurrency(grossProfit)}{" "}
+              <span className="text-green-500">({100 - Number(cogsPercentage)}%)</span>
             </span>
           </div>
         </div>

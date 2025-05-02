@@ -138,7 +138,7 @@ const ModifierSales = () => {
     { header: "Quantity Sold", key: "Quantity Sold" },
     { header: "Total Sales", key: "Total Sales" },
     { header: "HPP", key: "HPP" },
-    { header: "Gross Sales", key: "Gross Sales" },
+    { header: "Gross Profit", key: "Gross Sales" },
   ];
 
   return (
@@ -291,7 +291,7 @@ const ModifierSales = () => {
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">
                   <div className="flex items-center justify-end">
-                    Gross Sales
+                    Gross Profit
                     <div className="ml-2 flex flex-col">
                       <button
                         onClick={() => handleSort("grossSales")}

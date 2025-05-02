@@ -17,7 +17,7 @@ export default function Stats() {
         className={'flex-1 p-4 }'}
       >
         <h1 className="text-3xl md:text-4xl font-bold text-[#212121] mb-4">
-          Dashboard Manager
+          Dashboard
         </h1>
 
         {/* Baris Pertama: Stat Cards */}

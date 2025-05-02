@@ -11,6 +11,7 @@ interface GrossProfitResponse {
     discounts: number;
     refunds: number;
     netSales: number;
+    grossProfit: number;
     cogs: number;
   };
   details: {
@@ -97,24 +98,24 @@ export async function GET(req: NextRequest) {
     let grossSales = 0;
     let discounts = 0;
     let cogs = 0;
-
+    
     const uniqueOrders = new Set<number>();
-
+    
     for (const row of orders) {
       const sellingPrice = Number(row.sellingPrice);
       const hpp = Number(row.hpp);
       const quantity = Number(row.quantity);
       const itemTotalSelling = sellingPrice * quantity;
       const itemTotalHPP = hpp * quantity;
-
-      grossSales += itemTotalSelling - itemTotalHPP;
+    
+      grossSales += itemTotalSelling;
       cogs += itemTotalHPP;
-
+    
       if (!uniqueOrders.has(row.orderId)) {
         uniqueOrders.add(row.orderId);
         discounts += Number(row.discountAmount || 0);
       }
-
+    
       details.push({
         orderId: row.orderId,
         orderDate: new Date(row.orderDate).toISOString(),
@@ -126,9 +127,11 @@ export async function GET(req: NextRequest) {
         itemTotalHPP,
       });
     }
+    
 
     const refunds = 0;
     const netSales = grossSales - discounts - refunds;
+    const grossProfit = netSales - cogs;
 
     const summary: GrossProfitResponse["summary"] = {
       explanation:
@@ -138,6 +141,7 @@ export async function GET(req: NextRequest) {
       refunds,
       netSales,
       cogs,
+      grossProfit,
     };
 
     const response: GrossProfitResponse = {

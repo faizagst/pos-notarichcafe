@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     }
 
     const query = `
-      SELECT paymentMethod, COUNT(paymentMethod) AS count, SUM(total) AS totalRevenue
+      SELECT paymentMethod, COUNT(paymentMethod) AS count, SUM(finalTotal) AS totalRevenue
       FROM completedOrder
       WHERE createdAt >= ? AND createdAt < ? AND paymentMethod IS NOT NULL
       GROUP BY paymentMethod

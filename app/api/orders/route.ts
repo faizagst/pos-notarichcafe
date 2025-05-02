@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
                         JOIN menu m ON mc.menuId = m.id
                         WHERE mc.bundleId = ?
                     `, [item.menuId]);
-                
+
                     // Menyusun bundleCompositions sesuai dengan struktur yang diberikan
                     itemsMap[item.id].menu.bundleCompositions = bundleCompositions.map((bc: any) => ({
                         id: bc.id,
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
                         },
                     }));
                 }
-                
+
 
             }
 
@@ -158,10 +158,17 @@ export async function PUT(req: NextRequest) {
             }
         }
 
+        const fix = (num: number) => Math.round(num * 100) / 100;
+        const ceilToHundreds = (num: number) => Math.ceil(num / 100) * 100;
         const base = subtotal + modifierTotal - totalDiscountAmount;
-        const taxAmount = base * 0.10;
-        const gratuityAmount = base * 0.02;
-        const finalTotal = base + taxAmount + gratuityAmount;
+
+        const taxAmount = Math.round(base * 0.10);       // tax harus integer
+        const gratuityAmount = Math.round(base * 0.02);   // gratuity harus integer
+
+        const rawTotal = base + taxAmount + gratuityAmount;
+        const finalTotal = ceilToHundreds(rawTotal);      // dibulatkan ke 100
+
+        const roundingAmount = fix(finalTotal - rawTotal);
 
         // Update order
         const status = (order.status === "pending" || order.status === "paid") ? "Sedang Diproses" : order.status;
@@ -299,7 +306,7 @@ export async function PUT(req: NextRequest) {
                         JOIN menu m ON mc.menuId = m.id
                         WHERE mc.bundleId = ?
                     `, [item.menuId]);
-                
+
                     // Menyusun bundleCompositions sesuai dengan struktur yang diberikan
                     itemsMap[item.id].menu.bundleCompositions = bundleCompositions.map((bc: any) => ({
                         id: bc.id,
@@ -313,7 +320,7 @@ export async function PUT(req: NextRequest) {
                         },
                     }));
                 }
-                
+
 
             }
 

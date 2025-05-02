@@ -358,14 +358,18 @@ export default function IngredientsTable() {
       const res = await fetch("/api/rekap/dailyStock", { method: "POST" });
       const result = await res.json();
 
-      toast.success(result.message);
-      if (res.ok) {
-        router.push("/recapNotarich/stockCafe");
+      if (!res.ok) {
+        toast.error(result.message);
+        return;
       }
+    
+      toast.success(result.message); 
+      router.push("/recapNotarich/stockCafe");
     } catch (error) {
       console.error("Error resetting daily stock:", error);
+      toast.error("Terjadi kesalahan saat mereset stok harian.");
     }
-  };
+  }
 
   const lowStockIngredients = ingredients.filter(
     (ingredient) => ingredient.stock <= ingredient.stockMin

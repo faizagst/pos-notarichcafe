@@ -50,7 +50,7 @@ async function toNodeReadable(req: NextRequest): Promise<Readable> {
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params; // 👈 ini kuncinya!
+  const { id } = await context.params; // ini kuncinya!
   if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
 
   const contentType = req.headers.get("content-type") || "";
@@ -89,6 +89,21 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       const fields = ["name = ?", "description = ?", "price = ?"];
       const values = [name, description || null, parseFloat(price)];
 
+      // Hitung total hargaBakul dari semua menu yang termasuk
+      let totalHargaBakul = 0;
+      for (const row of parsedMenuRows) {
+        const [rows]: any = await db.execute(
+          `SELECT hargaBakul FROM menu WHERE id = ?`,
+          [row.menuId]
+        );
+        if (rows.length > 0) {
+          const harga = rows[0].hargaBakul || 0;
+          totalHargaBakul += harga * row.amount;
+        }
+      }
+      fields.push("hargaBakul = ?");
+      values.push(totalHargaBakul);
+
       if (imageUrl) {
         fields.push("image = ?");
         values.push(imageUrl);
@@ -98,6 +113,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       const updateQuery = `UPDATE menu SET ${fields.join(", ")} WHERE id = ?`;
 
       await db.execute(updateQuery, values);
+
 
       await db.execute("DELETE FROM menuComposition WHERE bundleId = ?", [id]);
 

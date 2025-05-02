@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
+import { format } from 'date-fns-tz';
 
 interface GrossMarginData {
   date: string;
@@ -21,7 +22,7 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
 
   while (current <= end) {
     if (period === 'daily') {
-      result.push(current.toISOString().split('T')[0]);
+      result.push(format(current, 'yyyy-MM-dd', { timeZone: 'Asia/Jakarta' }));
       current.setDate(current.getDate() + 1);
     } else if (period === 'weekly') {
       const year = current.getFullYear();
@@ -29,10 +30,10 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
       result.push(`${year}-W${String(week).padStart(2, '0')}`);
       current.setDate(current.getDate() + 7);
     } else if (period === 'monthly') {
-      result.push(`${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`);
+      result.push(format(current, 'yyyy-MM', { timeZone: 'Asia/Jakarta' }));
       current.setMonth(current.getMonth() + 1);
     } else if (period === 'yearly') {
-      result.push(`${current.getFullYear()}`);
+      result.push(format(current, 'yyyy', { timeZone: 'Asia/Jakarta' }));
       current.setFullYear(current.getFullYear() + 1);
     }
   }
@@ -87,23 +88,23 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (startDate) {
+    startDate.setHours(0, 0, 0, 0);
+  }
+
   if (endDate) {
     endDate.setHours(23, 59, 59, 999);
   }
 
   let query = '';
-  let values: any[] = [];
-  let mapFn: (item: any) => GrossMarginData;
-
   try {
     switch (period) {
       case 'daily':
         query = `
           SELECT 
             DATE_FORMAT(createdAt, '%Y-%m-%d') AS label,
-            COUNT(*) as transactionCount,
-            SUM(finalTotal) as netSales,
-            SUM(m.hargaBakul * ci.quantity) as hpp
+            SUM(co.total - co.discountAmount) AS netSales,
+            SUM(m.hargaBakul * ci.quantity) AS hpp
           FROM CompletedOrder co
           JOIN CompletedOrderItem ci ON co.id = ci.orderId
           JOIN Menu m ON ci.menuId = m.id
@@ -118,9 +119,8 @@ export async function GET(req: NextRequest) {
         query = `
           SELECT 
             DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-W%v') AS label,
-            COUNT(*) as transactionCount,
-            SUM(finalTotal) as netSales,
-            SUM(m.hargaBakul * ci.quantity) as hpp
+            SUM(co.total - co.discountAmount) AS netSales,
+            SUM(m.hargaBakul * ci.quantity) AS hpp
           FROM CompletedOrder co
           JOIN CompletedOrderItem ci ON co.id = ci.orderId
           JOIN Menu m ON ci.menuId = m.id
@@ -135,9 +135,8 @@ export async function GET(req: NextRequest) {
         query = `
           SELECT 
             DATE_FORMAT(createdAt, '%Y-%m') AS label,
-            COUNT(*) as transactionCount,
-            SUM(finalTotal) as netSales,
-            SUM(m.hargaBakul * ci.quantity) as hpp
+            SUM(co.total - co.discountAmount) AS netSales,
+            SUM(m.hargaBakul * ci.quantity) AS hpp
           FROM CompletedOrder co
           JOIN CompletedOrderItem ci ON co.id = ci.orderId
           JOIN Menu m ON ci.menuId = m.id
@@ -152,9 +151,8 @@ export async function GET(req: NextRequest) {
         query = `
           SELECT 
             DATE_FORMAT(createdAt, '%Y') AS label,
-            COUNT(*) as transactionCount,
-            SUM(finalTotal) as netSales,
-            SUM(m.hargaBakul * ci.quantity) as hpp
+            SUM(co.total - co.discountAmount) AS netSales,
+            SUM(m.hargaBakul * ci.quantity) AS hpp
           FROM CompletedOrder co
           JOIN CompletedOrderItem ci ON co.id = ci.orderId
           JOIN Menu m ON ci.menuId = m.id
@@ -169,19 +167,20 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid period' }, { status: 400 });
     }
 
-    values = [startDate, startDate, endDate, endDate];
-
+    const values = [startDate, startDate, endDate, endDate];
     const [rows] = await db.query<RowDataPacket[]>(query, values);
-    const rawResult = rows.map((item: any) => ({
-      date: item.label,
-      grossMargin: 
-        Number(item.netSales) > 0 
-          ? ((Number(item.netSales) - Number(item.hpp)) / Number(item.netSales)) * 100 
+
+    const rawResult = rows.map(row => ({
+      date: row.label,
+      grossMargin:
+        Number(row.netSales) > 0
+          ? ((Number(row.netSales) - Number(row.hpp)) / Number(row.netSales)) * 100
           : 0,
     }));
 
     const defaultKeys = generateDateRange(period, startDate!, endDate!);
     const resultMap = new Map(rawResult.map(item => [item.date, item]));
+
     const result: GrossMarginData[] = defaultKeys.map(date => ({
       date,
       grossMargin: resultMap.get(date)?.grossMargin ?? 0,

@@ -142,7 +142,7 @@ const CategorySales = () => {
     { header: "Nama Menu", key: "Nama Menu" },
     { header: "Category", key: "Category" },
     { header: "Item Sold", key: "Item Sold" },
-    { header: "Total Collected", key: "Total Collected" },
+    { header: "Net Sales", key: "Total Collected" },
     { header: "HPP", key: "HPP" },
     { header: "Discount", key: "Discount" },
   ];
@@ -278,7 +278,7 @@ const CategorySales = () => {
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">
                   <div className="flex items-center justify-end">
-                    Total Collected
+                    Net Sales
                     <div className="ml-2 flex flex-col">
                       <button
                         onClick={() => handleSort("totalCollected")}

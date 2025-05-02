@@ -5,9 +5,11 @@ interface CompletedOrder {
   id: number;
   tableNumber: string;
   total: number;
-  discountAmount: number; // Tambahkan ini
-  taxAmount: number;     // Tambahkan ini
-  gratuityAmount: number; // Tambahkan ini
+  discountAmount: number; 
+  taxAmount: number;    
+  gratuityAmount: number; 
+  roundingAmount: number;
+  finalTotal: number;
   paymentMethod?: string;
   paymentId?: string;
   createdAt: string;
@@ -16,7 +18,7 @@ interface CompletedOrder {
     menuName: string;
     quantity: number;
     note?: string;
-    modifiers?: {          // Tambahkan ini untuk modifier
+    modifiers?: {     
       id: number;
       modifierId: number;
       name: string;
@@ -210,9 +212,15 @@ export default function HistoryPage() {
                       </p>
                     </div>
                     <div>
+                      <p className="text-sm text-[#979797]">Rounding</p>
+                      <p className="font-semibold text-[#0E0E0E]">
+                        Rp {order.roundingAmount.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
                       <p className="text-sm text-[#979797]">Total Akhir</p>
                       <p className="font-semibold text-[#0E0E0E]">
-                        Rp {(order.total - order.discountAmount + order.taxAmount + order.gratuityAmount).toLocaleString()}
+                        Rp {order.finalTotal.toLocaleString()}
                       </p>
                     </div>
                   </div>

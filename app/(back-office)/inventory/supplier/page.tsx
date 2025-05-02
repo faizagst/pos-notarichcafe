@@ -90,7 +90,7 @@ const SuppliersPage: React.FC = () => {
           <table className="min-w-full border divide-y divide-gray-200">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-2">ID</th>
+                <th className="px-4 py-2">No</th>
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Address</th>
                 <th className="px-4 py-2">Phone</th>
@@ -106,9 +106,9 @@ const SuppliersPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                  filteredSuppliers.map((supplier) => (
+                  filteredSuppliers.map((supplier, index) => (
                     <tr key={supplier.id}>
-                      <td className="px-4 py-2">{supplier.id}</td>
+                      <td className="px-4 py-2">{index + 1}</td>
                       <td className="px-4 py-2">{supplier.name}</td>
                       <td className="px-4 py-2">{supplier.address}</td>
                       <td className="px-4 py-2">{supplier.phone}</td>

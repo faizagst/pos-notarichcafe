@@ -100,13 +100,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Cek nama yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM menu WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ message: 'Menu name already exists' }, { status: 400 });
+    }
+
     // Simpan bundle ke database
     const [result] = await db.execute(
       `INSERT INTO Menu (name, description, image, price, category, Status, type, hargaBakul)
        VALUES (?, ?, ?, ?, 'bundle', 'tersedia', 'BUNDLE', ?)`,
       [name, description || null, imagePath, parseFloat(price), totalHargaBakul]
     );
-    
+
 
     const newBundleId = (result as any).insertId;
 

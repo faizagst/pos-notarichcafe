@@ -265,6 +265,7 @@ const GetDiscount: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus discount ini?')) return;
     try {
       const res = await fetch(`/api/discount/${id}`, {
         method: 'DELETE',
@@ -291,7 +292,15 @@ const GetDiscount: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedDiscount),
       });
-      if (!res.ok) throw new Error('Failed to update discount');
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'Discount name already exists in this scope') {
+          toast.error("Nama diskon sudah digunakan!");
+        } else {
+          toast.error("Gagal edit diskon!");
+        }
+        return;
+      }
       toast.success("Berhasil edit diskon!");
       setShowEditModal(false);
       setSelectedDiscount(null);
@@ -309,7 +318,15 @@ const handleAddDiscount = async (newDiscount: Discount) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newDiscount),
     });
-    if (!res.ok) throw new Error('Failed to add discount');
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.error === 'Discount name already exists in this scope') {
+        toast.error("Nama diskon sudah digunakan!");
+      } else {
+        toast.error("Gagal membuat diskon!");
+      }
+      return;
+    }
     toast.success("Berhasil buat diskon!");
     setShowAddModal(false);
     fetchDiscounts();

@@ -34,6 +34,17 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
         const newStock = newStart + newStockIn - newUsed - newWasted;
         const newPrice = price !== undefined ? Number(price) : ingredient.price;
 
+        // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh ingredient lain
+        if (name) {
+            const [existingRows]: any = await db.query(
+                'SELECT id FROM ingredient WHERE name = ? AND id != ?',
+                [name, ingredientId]
+            );
+            if (existingRows.length > 0) {
+                return NextResponse.json({ message: 'Ingredient name already exists' }, { status: 409 });
+            }
+        }
+
         // Update ingredient
         await db.query(`
       UPDATE ingredient SET

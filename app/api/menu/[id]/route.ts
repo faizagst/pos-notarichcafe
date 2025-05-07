@@ -30,8 +30,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const menuId = Number(params.id);
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const menuId = Number(id);
   if (isNaN(menuId)) {
     return NextResponse.json({ message: "ID tidak valid" }, { status: 400 });
   }

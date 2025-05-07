@@ -48,6 +48,15 @@ export async function POST(req: NextRequest) {
   await conn.beginTransaction();
 
   try {
+    // Cek nama yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM ingredient WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ message: 'Ingredient name already exists' }, { status: 400 });
+    }
     // Insert ke tabel ingredient
     const [ingredientResult]: any = await conn.query(
       `INSERT INTO ingredient (name, start, stockIn, used, wasted, stock, stockMin, unit, finishedUnit, categoryId, type, price, isActive)

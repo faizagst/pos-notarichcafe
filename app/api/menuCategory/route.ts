@@ -26,12 +26,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Cek nama  yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM categoryMenu WHERE kategori = ?',
+      [kategori]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ message: 'Category name already exists' }, { status: 400 });
+    }
+
     const [result]: any = await db.execute(
       "INSERT INTO categoryMenu (kategori) VALUES (?)",
       [kategori]
     );
 
-    const [newCategory]:any = await db.query("SELECT * FROM categoryMenu WHERE id = ?", [result.insertId]);
+    const [newCategory]: any = await db.query("SELECT * FROM categoryMenu WHERE id = ?", [result.insertId]);
 
     return NextResponse.json(
       { message: "Kategori menu berhasil dibuat", category: newCategory[0] },

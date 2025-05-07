@@ -214,6 +214,7 @@ const GetTax: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus tax ini?')) return;
     try {
       const res = await fetch(`/api/tax/${id}`, {
         method: 'DELETE',
@@ -239,7 +240,15 @@ const GetTax: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedTax),
       });
-      if (!res.ok) throw new Error('Failed to update tax');
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'Tax name already exists') {
+          toast.error("Nama tax sudah digunakan!");
+        } else {
+          toast.error("Gagal edit pajak!");
+        }
+        return;
+      }
       toast.success("Berhasil edit pajak!");
       setShowEditModal(false);
       setSelectedTax(null);
@@ -256,7 +265,15 @@ const GetTax: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTax),
       });
-      if (!res.ok) throw new Error('Failed to create tax');
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'Tax name already exists') {
+          toast.error("Nama tax sudah digunakan!");
+        } else {
+          toast.error("Gagal membuat pajak!");
+        }
+        return;
+      }
       toast.success("Berhasil buat pajak!");
       setShowAddModal(false);
       fetchTaxes();

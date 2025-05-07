@@ -3,7 +3,7 @@ import db from "@/lib/db";
 
 // PUT: Update discount
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params; // 👈 ini kuncinya!
+  const { id } = await context.params;
   const discountId = Number(id);
 
   if (!discountId) {
@@ -17,6 +17,18 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     if (keys.length === 0) {
       return NextResponse.json({ error: "No update data provided" }, { status: 400 });
+    }
+
+    // Pastikan nama tetap unik per scope, kecuali ini diskon yang sama
+    if (body.name && body.scope) {
+      const [existing] = await db.query(
+        'SELECT id FROM discount WHERE name = ? AND scope = ? AND id != ?',
+        [body.name, body.scope, discountId]
+      );
+
+      if ((existing as any[]).length > 0) {
+        return NextResponse.json({ error: 'Discount name already exists in this scope' }, { status: 400 });
+      }
     }
 
     const setClause = keys.map((key) => `${key} = ?`).join(", ");

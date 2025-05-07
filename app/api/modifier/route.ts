@@ -54,6 +54,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Name and Category ID are required" }, { status: 400 });
     }
 
+    // Cek nama modifier yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM modifier WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ error: 'Modifier name already exists' }, { status: 400 });
+    }
+
     const [result]: any = await db.execute(`
       INSERT INTO modifier (name, price, categoryId, updatedAt)
       VALUES (?, ?, ?, NOW())
@@ -69,14 +79,14 @@ export async function POST(req: NextRequest) {
       `, [values]);
     }
 
-    const [createdModifier]:any = await db.query(`
+    const [createdModifier]: any = await db.query(`
       SELECT m.*, c.name AS categoryName
       FROM modifier m
       LEFT JOIN modifierCategory c ON m.categoryId = c.id
       WHERE m.id = ?
     `, [modifierId]);
 
-    const [createdIngredients]:any = await db.query(`
+    const [createdIngredients]: any = await db.query(`
       SELECT mi.*, i.name AS ingredientName, i.price, i.batchYield, i.type
       FROM modifierIngredient mi
       JOIN ingredient i ON mi.ingredientId = i.id
@@ -117,6 +127,17 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: "ID, Name, and Category ID are required" }, { status: 400 });
     }
 
+    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh modifier lain
+    if (body.name) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM modifier WHERE name = ? AND id != ?',
+        [body.name, id]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ error: 'Modifier name already exists' }, { status: 409 });
+      }
+    }
+
     await db.execute(`
       UPDATE modifier
       SET name = ?, price = ?, categoryId = ?, updatedAt = NOW()
@@ -136,14 +157,14 @@ export async function PUT(req: NextRequest) {
     }
 
     // Fetch updated data
-    const [updatedModifier]:any = await db.query(`
+    const [updatedModifier]: any = await db.query(`
       SELECT m.*, c.name AS categoryName
       FROM modifier m
       LEFT JOIN modifierCategory c ON m.categoryId = c.id
       WHERE m.id = ?
     `, [id]);
 
-    const [updatedIngredients]:any = await db.query(`
+    const [updatedIngredients]: any = await db.query(`
       SELECT mi.*, i.name AS ingredientName, i.price, i.batchYield, i.type
       FROM modifierIngredient mi
       JOIN ingredient i ON mi.ingredientId = i.id

@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Cek nama category yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM ingredientCategory WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ error: 'Category name already exists' }, { status: 400 });
+    }
+
     const [result]: any = await db.execute(
       `INSERT INTO ingredientCategory (name, description, updatedAt) VALUES (?, ?, NOW())`,
       [name, description || null]
@@ -49,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const newCategoryId = result.insertId;
 
-    const [newCategory]:any = await db.execute(
+    const [newCategory]: any = await db.execute(
       `SELECT * FROM ingredientCategory WHERE id = ?`,
       [newCategoryId]
     );

@@ -50,7 +50,7 @@ async function toNodeReadable(req: NextRequest): Promise<Readable> {
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params; // ini kuncinya!
+  const { id } = await context.params;
   if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
 
   const contentType = req.headers.get("content-type") || "";
@@ -110,6 +110,17 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       }
 
       values.push(id);
+
+      // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh bundles lain
+      if (name) {
+        const [existingRows]: any = await db.query(
+          'SELECT id FROM menu WHERE name = ? AND id != ?',
+          [name, id]
+        );
+        if (existingRows.length > 0) {
+          return NextResponse.json({ message: 'Bundle name already exists' }, { status: 409 });
+        }
+      }
       const updateQuery = `UPDATE menu SET ${fields.join(", ")} WHERE id = ?`;
 
       await db.execute(updateQuery, values);

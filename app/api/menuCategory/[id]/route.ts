@@ -20,9 +20,20 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       );
     }
 
+    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh category lain
+    if (kategori) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM categoryMenu WHERE kategori = ? AND id != ?',
+        [kategori, categoryId]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ message: 'Category name already exists' }, { status: 409 });
+      }
+    }
+
     await db.execute("UPDATE categoryMenu SET kategori = ? WHERE id = ?", [kategori, categoryId]);
 
-    const [updated]:any = await db.query("SELECT * FROM categoryMenu WHERE id = ?", [categoryId]);
+    const [updated]: any = await db.query("SELECT * FROM categoryMenu WHERE id = ?", [categoryId]);
 
     return NextResponse.json(
       { message: "Kategori menu berhasil diperbarui", category: updated[0] },

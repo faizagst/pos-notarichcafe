@@ -40,6 +40,17 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: "No update data provided" }, { status: 400 });
     }
 
+     // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh tax lain
+     if (body.name) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM tax WHERE name = ? AND id != ?',
+        [body.name, taxId]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ error: 'Tax name already exists' }, { status: 409 });
+      }
+    }
+
     const setClause = keys.map((key) => `${key} = ?`).join(", ");
 
     await db.execute(`UPDATE tax SET ${setClause} WHERE id = ?`, [...values, taxId]);

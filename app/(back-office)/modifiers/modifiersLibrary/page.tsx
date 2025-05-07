@@ -158,10 +158,13 @@ export default function ModifierPage() {
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Gagal ${isEditing ? "mengedit" : "menambahkan"} modifier: ${errorData || response.statusText}`);
-      }
+      const data = await response.json();
+
+     if (!response.ok) {
+      toast.error(data.error || data.message || `Gagal ${isEditing ? "mengedit" : "menambahkan"} modifier`);
+      return;
+    }
+
       await fetchModifiers();
       toast.success(`Modifier berhasil ${isEditing ? "diperbarui" : "ditambahkan"}!`);
       setIsAdding(false);

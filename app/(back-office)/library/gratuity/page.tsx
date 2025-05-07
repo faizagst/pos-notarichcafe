@@ -214,6 +214,7 @@ const GetGratuity: React.FC = () => {
   
 
   const handleDelete = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus gratuity ini?')) return; 
     try {
       const res = await fetch(`/api/gratuity/${id}`, {
         method: 'DELETE',
@@ -245,7 +246,15 @@ const GetGratuity: React.FC = () => {
         body: JSON.stringify(updatedGratuity),
       });
   
-      if (!res.ok) throw new Error('Failed to update');
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'Gratuity name already exists') {
+          toast.error("Nama gratuity sudah digunakan!");
+        } else {
+          toast.error("Gagal edit gratuity!");
+        }
+        return;
+      }
   
       toast.success("Berhasil edit gratuity!");
       setShowEditModal(false);
@@ -267,7 +276,16 @@ const GetGratuity: React.FC = () => {
         body: JSON.stringify(newGratuity),
       });
   
-      if (!res.ok) throw new Error('Failed to add');
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'Gratuity name already exists') {
+          toast.error("Nama gratuity sudah digunakan!");
+        } else {
+          toast.error("Gagal buat gratuity!");
+        }
+        return;
+      }
+  
   
       toast.success("Berhasil buat gratuity!");
       setShowAddModal(false);

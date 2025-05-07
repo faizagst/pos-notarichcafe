@@ -49,6 +49,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   await connection.beginTransaction();
 
   try {
+    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh ingredient lain
+    if (body.name) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM ingredient WHERE name = ? AND id != ?',
+        [body.name, ingredientId]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ message: 'Ingredient name already exists' }, { status: 409 });
+      }
+    }
     // Update data ingredient
     await connection.execute(
       `UPDATE ingredient SET name = ?, categoryId = ?, finishedUnit = ?, type = ?, price = ?, start = ?, stockIn = 0, used = 0, wasted = 0, stock = ?, stockMin = 0, unit = ?, batchYield = ?, isActive = true WHERE id = ?`,
@@ -87,7 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         `SELECT start, stockIn, used, wasted FROM ingredient WHERE id = ?`,
         [comp.rawIngredientId]
       );
-      const raw:any = Array.isArray(raws) ? raws[0] : null;
+      const raw: any = Array.isArray(raws) ? raws[0] : null;
 
       if (raw) {
         const newUsed = raw.used + comp.amount;

@@ -22,6 +22,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Cek nama diskon di scope yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM discount WHERE name = ? AND scope = ?',
+      [name, scope]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ error: 'Discount name already exists in this scope' }, { status: 400 });
+    }
+
     const [result]: any = await db.execute(
       `
       INSERT INTO discount (name, type, scope, value, isActive, createdAt, updatedAt)

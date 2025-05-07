@@ -25,8 +25,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
 // PUT: Update gratuity
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    const { id } = await context.params; // 👈 ini kuncinya!
-    const gratuityId = Number(id);
+  const { id } = await context.params;
+  const gratuityId = Number(id);
   if (!gratuityId) {
     return NextResponse.json({ error: "Missing gratuity id" }, { status: 400 });
   }
@@ -39,6 +39,18 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     if (keys.length === 0) {
       return NextResponse.json({ error: "No update data provided" }, { status: 400 });
     }
+
+    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh gratuity lain
+    if (body.name) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM gratuity WHERE name = ? AND id != ?',
+        [body.name, gratuityId]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ error: 'Gratuity name already exists' }, { status: 409 });
+      }
+    }
+
 
     const setClause = keys.map((key) => `${key} = ?`).join(", ");
 

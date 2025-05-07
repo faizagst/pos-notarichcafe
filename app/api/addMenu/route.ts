@@ -57,8 +57,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Cek nama yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM menu WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ message: 'Menu name already exists' }, { status: 400 });
+    }
+
     // Create menu
-    const [result]:any = await db.query(
+    const [result]: any = await db.query(
       `INSERT INTO menu (name, description, price, image, category, Status, hargaBakul) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [name, description, price, imagePath, category, Status, 2000]
     );
@@ -94,7 +104,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate maxBeli
-    const [ingredientsData]:any = await db.query(
+    const [ingredientsData]: any = await db.query(
       `SELECT i.stock, mi.amount 
        FROM menuIngredient mi 
        JOIN ingredient i ON mi.ingredientId = i.id 
@@ -121,49 +131,61 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-    try {
-      const formData = await req.formData();
-      const file = formData.get("image") as File | null;
-  
-      let imagePath: string | null = null;
-  
-      if (file && file.name) {
-        const filePath = path.join(uploadDir, file.name);
-        fs.writeFileSync(filePath, Buffer.from(await file.arrayBuffer()));
-        imagePath = `/uploads/${file.name}`;
-      }
-  
-      const id = parseInt(formData.get("id") as string);
-      const name = formData.get("name") as string;
-      const price = parseFloat(formData.get("price") as string);
-      const description = formData.get("description") || null;
-      const category = formData.get("category") || null;
-      const Status = formData.get("Status") || null;
-      const ingredients = JSON.parse(formData.get("ingredients") as string || "[]");
-      const modifierIds = JSON.parse(formData.get("modifierIds") as string || "[]");
-      const discountId = formData.get("discountId") || null;
-  
-      if (!id || !name || isNaN(price)) {
-        return NextResponse.json(
-          { message: "ID, Name, dan Price wajib diisi" },
-          { status: 400 }
-        );
-      }
-  
-      // Update menu
-      const updateFields = [`name = ?`, `description = ?`, `price = ?`, `category = ?`, `Status = ?`];
-      const values: any[] = [name, description, price, category, Status];
-  
-      if (imagePath) {
-        updateFields.push(`image = ?`);
-        values.push(imagePath);
-      }
-  
-      values.push(id);
-      await db.query(
-        `UPDATE menu SET ${updateFields.join(", ")} WHERE id = ?`,
-        values
+  try {
+    const formData = await req.formData();
+    const file = formData.get("image") as File | null;
+
+    let imagePath: string | null = null;
+
+    if (file && file.name) {
+      const filePath = path.join(uploadDir, file.name);
+      fs.writeFileSync(filePath, Buffer.from(await file.arrayBuffer()));
+      imagePath = `/uploads/${file.name}`;
+    }
+
+    const id = parseInt(formData.get("id") as string);
+    const name = formData.get("name") as string;
+    const price = parseFloat(formData.get("price") as string);
+    const description = formData.get("description") || null;
+    const category = formData.get("category") || null;
+    const Status = formData.get("Status") || null;
+    const ingredients = JSON.parse(formData.get("ingredients") as string || "[]");
+    const modifierIds = JSON.parse(formData.get("modifierIds") as string || "[]");
+    const discountId = formData.get("discountId") || null;
+
+    if (!id || !name || isNaN(price)) {
+      return NextResponse.json(
+        { message: "ID, Name, dan Price wajib diisi" },
+        { status: 400 }
       );
+    }
+
+    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh gratuity lain
+    if (name) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM menu WHERE name = ? AND id != ?',
+        [name, id]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ message: 'Menu name already exists' }, { status: 409 });
+      }
+    }
+
+
+    // Update menu
+    const updateFields = [`name = ?`, `description = ?`, `price = ?`, `category = ?`, `Status = ?`];
+    const values: any[] = [name, description, price, category, Status];
+
+    if (imagePath) {
+      updateFields.push(`image = ?`);
+      values.push(imagePath);
+    }
+
+    values.push(id);
+    await db.query(
+      `UPDATE menu SET ${updateFields.join(", ")} WHERE id = ?`,
+      values
+    );
 
     // Update ingredients
     await db.query(`DELETE FROM menuIngredient WHERE menuId = ?`, [id]);
@@ -197,7 +219,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Calculate maxBeli
-    const [ingredientsData]:any = await db.query(
+    const [ingredientsData]: any = await db.query(
       `SELECT i.stock, mi.amount 
        FROM menuIngredient mi 
        JOIN ingredient i ON mi.ingredientId = i.id 

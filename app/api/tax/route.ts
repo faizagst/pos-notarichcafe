@@ -20,6 +20,16 @@ export async function POST(req: NextRequest) {
     if (!name || value === undefined) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+    
+    // Cek nama tax yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM tax WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ error: 'Tax name already exists' }, { status: 400 });
+    }
 
     const [result]: any = await db.execute(
       "INSERT INTO tax (name, value, isActive , createdAt, updatedAt) VALUES (?, ?, ?, NOW(), NOW())",

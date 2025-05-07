@@ -31,12 +31,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Nama kategori wajib diisi" }, { status: 400 });
     }
 
+    // Cek nama category yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM modifierCategory WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ error: 'Category name already exists' }, { status: 400 });
+    }
+
     const [result]: any = await db.query(
       "INSERT INTO modifierCategory (name, description, updatedAt) VALUES (?, ?, NOW())",
       [name, description || null]
     );
 
-    const [newCategory]:any = await db.query("SELECT * FROM modifierCategory WHERE id = ?", [result.insertId]);
+    const [newCategory]: any = await db.query("SELECT * FROM modifierCategory WHERE id = ?", [result.insertId]);
 
     return NextResponse.json(
       {

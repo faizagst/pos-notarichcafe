@@ -404,14 +404,14 @@ const AddBundleModal: React.FC<AddBundleModalProps> = ({ onClose, onBundleAdded 
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || 'Gagal membuat bundle');
+        toast.error(data.message || 'Gagal membuat bundle');
       } else {
         onBundleAdded();
         onClose();
       }
     } catch (err) {
       console.error(err);
-      setError('Terjadi kesalahan saat membuat bundle.');
+      toast.error('Terjadi kesalahan saat membuat bundle.');
     } finally {
       setLoading(false);
     }
@@ -690,14 +690,14 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || 'Gagal mengupdate bundle');
+        toast.error(data.message || 'Gagal mengupdate bundle');
       } else {
         onBundleUpdated();
         onClose();
       }
     } catch (err) {
       console.error(err);
-      setError('Terjadi kesalahan saat mengupdate bundle.');
+      toast.error('Terjadi kesalahan saat mengupdate bundle.');
     } finally {
       setLoading(false);
     }

@@ -308,11 +308,11 @@ export default function IngredientsTable() {
         );
         setSelectedIngredient(null);
       } else {
-        alert(data.message || "Gagal mengupdate ingredient.");
+        toast.error(data.message || "Gagal mengupdate ingredient.");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat mengupdate ingredient.");
+      toast.error("Terjadi kesalahan saat mengupdate ingredient.");
     }
   };
 
@@ -343,11 +343,11 @@ export default function IngredientsTable() {
         fetchIngredients();
         handleModalClose();
       } else {
-        alert(data.message || "Gagal mengupdate semi finished ingredient.");
+        toast.error(data.message || "Gagal mengupdate semi finished ingredient.");
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan saat mengupdate semi finished ingredient.");
+      toast.error("Terjadi kesalahan saat mengupdate semi finished ingredient.");
     }
   };
 

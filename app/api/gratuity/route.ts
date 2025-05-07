@@ -17,6 +17,17 @@ export async function POST(req: NextRequest) {
   try {
     const { name, value, isActive } = await req.json();
 
+    // Cek nama gratuity yang sama
+    const [existing] = await db.query(
+      'SELECT id FROM gratuity WHERE name = ?',
+      [name]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return NextResponse.json({ error: 'Gratuity name already exists' }, { status: 400 });
+    }
+
+
     await db.execute(
       "INSERT INTO gratuity (name, value, isActive, createdAt, updatedAt) VALUES (?, ?, ?, NOW(), NOW())",
       [name, Number(value), isActive !== undefined ? isActive : true]

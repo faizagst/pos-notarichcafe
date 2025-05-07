@@ -66,12 +66,13 @@ export default function CategoryList() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       });
+      const data  = await res.json()
       if (res.ok) {
         toast.success("Category berhasil dibuat!");
         setShowAddModal(false);
         fetchCategories();
       } else {
-        toast.error('Gagal menambahkan kategori');
+        toast.error(data.error || 'Gagal menambahkan kategori');
       }
     } catch (error) {
       console.error('Error adding category:', error);
@@ -94,7 +95,7 @@ export default function CategoryList() {
         setSelectedCategory(null);
         fetchCategories();
       } else {
-        toast.error('Gagal mengedit kategori');
+        toast.error(data.error || 'Gagal mengedit kategori');
       }
     } catch (error) {
       console.error('Error editing category:', error);

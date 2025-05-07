@@ -73,7 +73,7 @@ export default function ModifierCategoryList() {
         fetchCategories();
       } else {
         const errorData = await res.json();
-        toast.error(`Gagal menambahkan kategori: ${errorData.message || "Unknown error"}`);
+        toast.error(`Gagal menambahkan kategori: ${errorData.error || errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error adding category:", error);
@@ -95,7 +95,7 @@ export default function ModifierCategoryList() {
         setSelectedCategory(null);
         fetchCategories();
       } else {
-        toast.error(`Gagal mengedit kategori: ${data.message || "Unknown error"}`);
+        toast.error(`Gagal mengedit kategori: ${data.error ||  data.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error editing category:", error);

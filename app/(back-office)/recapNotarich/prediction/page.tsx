@@ -9,13 +9,12 @@ interface PredictionResult {
     unit: string;
     type: string;
     avgDailyUsage: number;
-    predictedUsage: number;
+    meanDemand: number;
     safetyStock: number;
-    totalRequired: number;
-    stockAfterReview: number;
-    daysUntilStockOut: number;
+    targetStockLevel: number;
+    daysUntilOutOfStock: number;
     shouldRestock: number;
-    recommendedOrder: number;
+    restockQty: number;
 }
 
 export default function PredictionTable() {
@@ -71,6 +70,7 @@ export default function PredictionTable() {
                             <thead className="bg-gray-100 sticky top-0 z-10">
                                 <tr>
                                     <th className="px-4 py-2 text-left font-semibold">Nama Bahan</th>
+                                    <th className="px-4 py-2 text-left font-semibold">Tipe Bahan</th>
                                     <th className="px-4 py-2 text-right font-semibold">Stok Saat ini</th>
                                     <th className="px-4 py-2 text-right font-semibold">Rata-rata Harian</th>
                                     <th className="px-4 py-2 text-right font-semibold">Prediksi</th>
@@ -88,15 +88,16 @@ export default function PredictionTable() {
                                         className={row.shouldRestock ? 'bg-red-50' : 'hover:bg-gray-50'}
                                     >
                                         <td className="border-t px-4 py-2">{row.name}</td>
+                                        <td className="border-t px-4 py-2">{row.type}</td>
                                         <td className="border-t px-4 py-2 text-right">
                                             {row.stock} {row.unit}
                                         </td>
                                         <td className="border-t px-4 py-2 text-right">{row.avgDailyUsage} {row.unit}</td>
-                                        <td className="border-t px-4 py-2 text-right">{row.predictedUsage} {row.unit}</td>
+                                        <td className="border-t px-4 py-2 text-right">{row.meanDemand} {row.unit}</td>
                                         <td className="border-t px-4 py-2 text-right">{row.safetyStock} {row.unit}</td>
-                                        <td className="border-t px-4 py-2 text-right">{row.totalRequired} {row.unit}</td>
+                                        <td className="border-t px-4 py-2 text-right">{row.targetStockLevel} {row.unit}</td>
                                         <td className="border-t px-4 py-2 text-right">
-                                            {row.daysUntilStockOut === 9999 ? '-' : `${row.daysUntilStockOut} hari`}
+                                            {row.daysUntilOutOfStock === 9999 ? '-' : `${row.daysUntilOutOfStock} hari`}
                                         </td>
                                         <td className="border-t px-4 py-2 text-center">
                                             {row.shouldRestock ? (
@@ -105,7 +106,7 @@ export default function PredictionTable() {
                                                 <span className="text-green-600 font-medium">Stok Aman</span>
                                             )}
                                         </td>
-                                        <td className="border-t px-4 py-2 text-right">{row.recommendedOrder} {row.unit}</td>
+                                        <td className="border-t px-4 py-2 text-right">{row.restockQty} {row.unit}</td>
                                     </tr>
                                 ))}
                             </tbody>

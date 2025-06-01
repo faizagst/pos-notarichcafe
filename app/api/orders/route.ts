@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
                     const bundleCompositions: any = await query(`
                         SELECT mc.id, mc.bundleId, mc.menuId, mc.amount,
                             m.name AS bundled_menu_name, m.category AS bundled_menu_category
-                        FROM menucomposition mc
+                        FROM menuComposition mc
                         JOIN menu m ON mc.menuId = m.id
                         WHERE mc.bundleId = ?
                     `, [item.menuId]);
@@ -204,7 +204,7 @@ export async function PUT(req: NextRequest) {
             // Ambil bahan dari menu
             const menuIngredients: any = await query(`
               SELECT ingredientId, amount 
-              FROM menuingredient 
+              FROM menuIngredient 
               WHERE menuId = ?
             `, [item.menuId]);
 
@@ -228,7 +228,7 @@ export async function PUT(req: NextRequest) {
                 // Ambil bahan dari modifier
                 const modIngredients: any = await query(`
                 SELECT ingredientId, amount 
-                FROM modifieringredient 
+                FROM modifierIngredient 
                 WHERE modifierId = ?
               `, [mod.modifierId]);
 
@@ -302,7 +302,7 @@ export async function PUT(req: NextRequest) {
                     const bundleCompositions: any = await query(`
                         SELECT mc.id, mc.bundleId, mc.menuId, mc.amount,
                             m.name AS bundled_menu_name, m.category AS bundled_menu_category
-                        FROM menucomposition mc
+                        FROM menuComposition mc
                         JOIN menu m ON mc.menuId = m.id
                         WHERE mc.bundleId = ?
                     `, [item.menuId]);

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { LucideEye, LucideEyeOff } from "lucide-react";
 
 const Header = () => {
-  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; name: string; role: string } | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -14,6 +14,7 @@ const Header = () => {
         const data = await res.json();
         setUser({
           username: data.user.username,
+          name: data.user.name,
           role: data.user.role,
         });
       }
@@ -72,7 +73,7 @@ const Header = () => {
           >
             <img src="/logo.png" alt="User" className="w-10 h-10 rounded-full" />
             <div className="text-left hidden sm:block">
-              <div className="font-semibold">{user.username}</div>
+              <div className="font-semibold">{user.name || user.username}</div>
               <div className="text-xs text-gray-600">{user.role}</div>
             </div>
           </button>

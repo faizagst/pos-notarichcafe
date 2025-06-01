@@ -1,4 +1,3 @@
-// pages/manager/report/transactions/Transactions.tsx
 "use client";
 import { useState, useEffect, ChangeEvent, useCallback } from "react";
 import { ExportButton } from "@/components/ExportButton";
@@ -7,7 +6,13 @@ import { ExportButton } from "@/components/ExportButton";
 interface TransactionItem {
   menuName: string;
   total: number;
+  quantity: number;
+  modifiers: {
+    name: string;
+    price: number;
+  }[];
 }
+
 
 interface TransactionDetail {
   time: string; // ISO string dari Date
@@ -107,15 +112,15 @@ const Transactions = () => {
 
   const sortedDetails = data?.details
     ? [...data.details].sort((a, b) => {
-        if (!sortColumn) return 0;
-        const direction = sortDirection === "asc" ? 1 : -1;
-        if (sortColumn === "time") {
-          return direction * (new Date(a.time).getTime() - new Date(b.time).getTime());
-        } else if (sortColumn === "totalPrice") {
-          return direction * (a.totalPrice - b.totalPrice);
-        }
-        return 0;
-      })
+      if (!sortColumn) return 0;
+      const direction = sortDirection === "asc" ? 1 : -1;
+      if (sortColumn === "time") {
+        return direction * (new Date(a.time).getTime() - new Date(b.time).getTime());
+      } else if (sortColumn === "totalPrice") {
+        return direction * (a.totalPrice - b.totalPrice);
+      }
+      return 0;
+    })
     : [];
 
   const exportData = [
@@ -301,17 +306,32 @@ const Transactions = () => {
                             minute: "2-digit",
                           })}
                         </td>
+
                         <td className="px-6 py-4 text-sm text-gray-900">
                           {transaction.items.map((item, i) => (
-                            <div key={i}>{item.menuName}</div>
+                            <div key={i} className="mb-2">
+                              <div>{item.menuName} × {item.quantity}</div>
+
+                              {item.modifiers.length > 0 && (
+                                <ul className="ml-4 list-disc text-gray-500 text-xs">
+                                  {item.modifiers.map((mod, j) => (
+                                    <li key={j}>
+                                      {mod.name} ({formatCurrency(mod.price)})
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
                           ))}
                         </td>
+
                         <td className="px-6 py-4 text-sm text-gray-900 text-right">
                           {formatCurrency(transaction.totalPrice)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
+
                 </table>
               </div>
             </div>

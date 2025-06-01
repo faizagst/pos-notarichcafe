@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     const serviceLevelZ = 1.65;
 
     // Konversi parameter ke integer
-    const reviewPeriod = parseInt(periodParam || '14', 10);  // T, interval pemesanan (hari)
-    const leadTime = parseInt(leadTimeParam || '3', 10);     // LT, lead time (hari)
+    const reviewPeriod = parseInt(periodParam || '0', 10);  // T, interval pemesanan (hari)
+    const leadTime = parseInt(leadTimeParam || '0', 10);     // LT, lead time (hari)
 
     // Total hari yang dihitung (periode review + lead time)
     const totalDays = reviewPeriod + leadTime;
@@ -43,10 +43,10 @@ export async function GET(request: NextRequest) {
             DATE(co.createdAt) AS usage_date,
             mi.ingredientId,
             coi.quantity * mi.amount AS usage_amount
-          FROM completedorderitem coi
+          FROM completedOrderItem coi
           JOIN menu m ON m.id = coi.menuId AND m.type = 'NORMAL'
-          JOIN menuingredient mi ON mi.menuId = m.id
-          JOIN completedorder co ON co.id = coi.orderId
+          JOIN menuIngredient mi ON mi.menuId = m.id
+          JOIN completedOrder co ON co.id = coi.orderId
           WHERE co.createdAt >= CURDATE() - INTERVAL ${totalDays} DAY
 
           UNION ALL
@@ -56,11 +56,11 @@ export async function GET(request: NextRequest) {
             DATE(co.createdAt) AS usage_date,
             mi.ingredientId,
             coi.quantity * mc.amount * mi.amount AS usage_amount
-          FROM completedorderitem coi
+          FROM completedOrderItem coi
           JOIN menu m_bundle ON m_bundle.id = coi.menuId AND m_bundle.type = 'BUNDLE'
-          JOIN menucomposition mc ON mc.bundleId = m_bundle.id
-          JOIN menuingredient mi ON mi.menuId = mc.menuId
-          JOIN completedorder co ON co.id = coi.orderId
+          JOIN menuComposition mc ON mc.bundleId = m_bundle.id
+          JOIN menuIngredient mi ON mi.menuId = mc.menuId
+          JOIN completedOrder co ON co.id = coi.orderId
           WHERE co.createdAt >= CURDATE() - INTERVAL ${totalDays} DAY
 
           UNION ALL
@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
             DATE(co.createdAt) AS usage_date,
             mfi.ingredientId,
             mfi.amount AS usage_amount
-          FROM completedorderitemmodifier coimod
-          JOIN modifieringredient mfi ON coimod.modifierId = mfi.modifierId
-          JOIN completedorderitem coi ON coi.id = coimod.completedOrderItemId
-          JOIN completedorder co ON co.id = coi.orderId
+          FROM completedOrderItemModifier coimod
+          JOIN modifierIngredient mfi ON coimod.modifierId = mfi.modifierId
+          JOIN completedOrderItem coi ON coi.id = coimod.completedOrderItemId
+          JOIN completedOrder co ON co.id = coi.orderId
           WHERE co.createdAt >= CURDATE() - INTERVAL ${totalDays} DAY
         ) combined_usage
         GROUP BY usage_date, ingredientId

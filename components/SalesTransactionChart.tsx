@@ -20,7 +20,7 @@ interface SalesData {
 interface SalesDetail {
   date: string;
   summary: {
-    netSales: number;
+    totalCollected: number;
     transactionCount: number;
     salesPerTransaction: number;
   };
@@ -29,6 +29,14 @@ interface SalesDetail {
     sellingPrice: number;
     quantity: number;
     totalSales: number;
+    orderId: number;
+    tanggal: string;
+    totalCollected: number;
+    items: {
+      menuName: string;
+      quantity: number;
+      modifiers: string[];
+    }[];
   }[];
 }
 
@@ -65,7 +73,7 @@ export default function SalesTransactionChart() {
       try {
         let url = "";
         let params = new URLSearchParams();
-  
+
         if (period === "custom") {
           params.append("period", "daily");
           params.append("start", startDate);
@@ -74,14 +82,14 @@ export default function SalesTransactionChart() {
           params.append("period", period);
           params.append("date", startDate);
         }
-  
+
         url = `/api/salesTransactionData?${params.toString()}`;
-  
+
         const res = await fetch(url);
         const data: SalesData[] = await res.json();
-  
+
         console.log("Sales Data:", data);
-  
+
         if (Array.isArray(data)) {
           if (period === "custom" && startDate && endDate) {
             const fullDates = generateDateRange(startDate, endDate);
@@ -92,31 +100,31 @@ export default function SalesTransactionChart() {
                 salesPerTransaction: found?.salesPerTransaction ?? 0,
               };
             });
-        
+
             console.log("Mapped Custom Data:", mappedData);
             setSalesData(mappedData);
           } else {
             setSalesData(data);
           }
         }
-        
-         else {
+
+        else {
           console.error("Data tidak dalam format array");
         }
       } catch (error) {
         console.error("Error fetching sales data:", error);
       }
     }
-  
+
     fetchSalesData();
   }, [period, startDate, endDate]);
-  
-  
+
+
 
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString + "T00:00:00");
-  
+
     if (["daily", "custom"].includes(period)) {
       return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
     } else if (period === "weekly") {
@@ -131,7 +139,7 @@ export default function SalesTransactionChart() {
     }
     return "";
   };
-  
+
 
   const handleBarClick = async (data: { payload: SalesData }) => {
     const clickedDate = data.payload.date;
@@ -279,7 +287,7 @@ export default function SalesTransactionChart() {
                 <div className="mb-4 p-4 bg-gray-100 rounded">
                   <p>
                     <strong>Total Collected:</strong> Rp{" "}
-                    {Number(selectedDetail.summary.netSales).toLocaleString()}
+                    {Number(selectedDetail.summary.totalCollected).toLocaleString()}
                   </p>
                   <p>
                     <strong>Jumlah Transaksi:</strong>{" "}
@@ -290,27 +298,40 @@ export default function SalesTransactionChart() {
                     {selectedDetail.summary.salesPerTransaction.toFixed(2)}
                   </p>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Detail Menu</h3>
+                <h3 className="text-lg font-semibold mb-2">Detail Transaksi</h3>
                 {selectedDetail.details.length > 0 ? (
                   <table className="w-full text-left">
                     <thead>
                       <tr>
-                        <th className="border px-2 py-1">Menu</th>
-                        <th className="border px-2 py-1">Harga Jual</th>
-                        <th className="border px-2 py-1">Jumlah Terjual</th>
+                        <th className="border px-2 py-1">Order ID</th>
+                        <th className="border px-2 py-1">Tanggal</th>
                         <th className="border px-2 py-1">Total Collected</th>
+                        <th className="border px-2 py-1">Items & Modifier</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedDetail.details.map((item, index) => (
+                      {selectedDetail.details.map((order, index) => (
                         <tr key={index}>
-                          <td className="border px-2 py-1">{item.menuName}</td>
-                          <td className="border px-2 py-1">
-                            Rp {Number(item.sellingPrice).toLocaleString()}
-                          </td>
-                          <td className="border px-2 py-1">{item.quantity}</td>
-                          <td className="border px-2 py-1">
-                            Rp {Number(item.totalSales).toLocaleString()}
+                          <td className="border px-2 py-1">{order.orderId}</td>
+                          <td className="border px-2 py-1">{order.tanggal}</td>
+                          <td className="border px-2 py-1">{order.totalCollected}</td>
+                          <td className="border px-2 py-1 space-y-1">
+                            {order.items.map((item, idx) => (
+                              <div key={idx}>
+                                {item.menuName} x {item.quantity}
+                                {/* Check if appliedModifiers exists and has items */}
+                                {item.modifiers && item.modifiers.length > 0 && (
+                                  <div className="pl-3 mt-1 text-xs text-gray-600">
+                                    <span className="font-semibold">Modifiers:</span>
+                                    {item.modifiers.map((modifier) => (
+                                      <div key={modifier}>
+                                        └ {modifier}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </td>
                         </tr>
                       ))}

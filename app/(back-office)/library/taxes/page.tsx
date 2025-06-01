@@ -57,7 +57,9 @@ const EditTaxModal: React.FC<{
           <input
             type="number"
             name="value"
-            value={formData.value}
+            placeholder="0"
+            min="0"
+            value={formData.value || ""}
             onChange={handleChange}
             className="border rounded p-1"
             required
@@ -148,7 +150,9 @@ const AddTaxModal: React.FC<{
           <input
             type="number"
             name="value"
-            value={formData.value}
+            placeholder="0"
+            min="0"
+            value={formData.value || ""}
             onChange={handleChange}
             className="border rounded p-1"
             required

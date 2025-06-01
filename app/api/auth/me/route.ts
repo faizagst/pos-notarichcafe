@@ -65,13 +65,13 @@ export async function GET(req: NextRequest) {
         `SELECT id, username, email, role FROM owner WHERE token = ? LIMIT 1`,
         [token]
       );
-    
+
       if (!Array.isArray(rows) || rows.length === 0) {
         return NextResponse.json({ message: 'User not found' }, { status: 404 });
       }
-    
+
       const user = rows[0];
-    
+
       return NextResponse.json({
         message: 'Authorized',
         user: {
@@ -81,15 +81,24 @@ export async function GET(req: NextRequest) {
         },
       }, { status: 200 });
     }
-    
 
-    // Role dari tabel user + roleEmployee
+
+    // Role dari tabel user + roleEmployee + nama dari employee
     const [userRows]: any = await db.query(
-      `SELECT u.id, u.username, u.email, r.name as role, r.backofficePermissions, r.appPermissions
-       FROM user u
-       LEFT JOIN roleEmployee r ON u.roleId = r.id
-       WHERE u.token = ?
-       LIMIT 1`,
+      `SELECT
+        u.id,
+        u.username,
+        u.email,
+        r.name as role,
+        r.backofficePermissions,
+        r.appPermissions,
+        e.firstName,
+        e.lastName
+        FROM user u
+        LEFT JOIN roleEmployee r ON u.roleId = r.id
+        LEFT JOIN employee e ON u.employeeId = e.id 
+        WHERE u.token = ?
+        LIMIT 1`,
       [token]
     );
 
@@ -104,6 +113,9 @@ export async function GET(req: NextRequest) {
       user: {
         id: user.id,
         username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: user.firstName + ' ' + user.lastName,
         email: user.email,
         role: user.role,
         backofficePermissions: JSON.parse(user.backofficePermissions || '{}'),

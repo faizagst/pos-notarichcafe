@@ -167,7 +167,7 @@ const BundlesPage: React.FC = () => {
                 displayedBundles.map((bundle) => (
                   <tr key={bundle.id}>
                     <td className="px-6 py-4">
-                      <img src={bundle.image} alt={bundle.name} className="w-16 h-16 object-cover rounded" />
+                      <img src={bundle.image || undefined} alt={bundle.name} className="w-16 h-16 object-cover rounded" />
                     </td>
                     <td className="px-6 py-4">{bundle.name}</td>
                     <td className="px-6 py-4">
@@ -436,7 +436,9 @@ const AddBundleModal: React.FC<AddBundleModalProps> = ({ onClose, onBundleAdded 
             <label className="block mb-1">Harga Bundle:</label>
             <input
               type="number"
-              value={bundlePrice}
+              placeholder="0"
+              value={bundlePrice || ""}
+              min="0"
               onChange={(e) => setBundlePrice(Number(e.target.value))}
               required
               className="w-full p-2 border rounded"
@@ -453,7 +455,7 @@ const AddBundleModal: React.FC<AddBundleModalProps> = ({ onClose, onBundleAdded 
           </div>
           <div className="mb-4">
             <label className="block mb-1">Pilih Gambar Bundle:</label>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <input type="file" accept="image/*" onChange={handleFileChange} required/>
           </div>
           {/* Bagian dinamis untuk memilih menu dan jumlahnya */}
           <div className="mb-4">
@@ -468,7 +470,7 @@ const AddBundleModal: React.FC<AddBundleModalProps> = ({ onClose, onBundleAdded 
                   required
                   className="flex-1 p-2 border border-gray-300 rounded"
                 >
-                  <option value={0}>Pilih Menu</option>
+                  <option value="">Pilih Menu</option>
                   {menuOptions.map((menu) => (
                     <option key={menu.id} value={menu.id}>
                       {menu.name} - Rp {menu.price}
@@ -478,7 +480,8 @@ const AddBundleModal: React.FC<AddBundleModalProps> = ({ onClose, onBundleAdded 
                 <input
                   type="number"
                   placeholder="Amount"
-                  value={row.amount}
+                  value={row.amount || ""}
+                  min="0"
                   onChange={(e) =>
                     updateRowAddModal(index, "amount", parseFloat(e.target.value))
                   }
@@ -722,7 +725,9 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
             <label className="block mb-1">Harga Bundle:</label>
             <input
               type="number"
-              value={bundlePrice}
+              placeholder="0"
+              value={bundlePrice || ""}
+              min='0'
               onChange={(e) => setBundlePrice(Number(e.target.value))}
               required
               className="w-full p-2 border rounded"
@@ -754,7 +759,7 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
                   required
                   className="flex-1 p-2 border border-gray-300 rounded"
                 >
-                  <option value={0}>Pilih Menu</option>
+                  <option value="">Pilih Menu</option>
                   {menuOptions.map((menu) => (
                     <option key={menu.id} value={menu.id}>
                       {menu.name} - Rp {menu.price}
@@ -764,7 +769,8 @@ const EditBundleModal: React.FC<EditBundleModalProps> = ({ bundle, onClose, onBu
                 <input
                   type="number"
                   placeholder="Amount"
-                  value={row.amount}
+                  value={row.amount || ""}
+                  min="0"
                   onChange={(e) =>
                     updateRowEditModal(index, "amount", parseFloat(e.target.value))
                   }

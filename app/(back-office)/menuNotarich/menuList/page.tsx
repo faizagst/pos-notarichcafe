@@ -17,11 +17,14 @@ interface Ingredient {
   id: number;
   name: string;
   unit: string;
+  type: string;
 }
 
 interface MenuIngredient {
   id: number;
   amount: number;
+  unit: string;
+  finishedUnit: string;
   ingredient: Ingredient;
 }
 
@@ -208,14 +211,15 @@ export default function ManagerMenusPage() {
                       "Tidak ada diskon"
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    {menu.ingredients.map((item, index) => (
-                      <span key={item.ingredient.id}>
-                        {item.ingredient.name} ({item.amount}{item.ingredient.unit})
-                        {index < menu.ingredients.length - 1 && ", "}
-                      </span>
-                    ))}
-                  </td>
+                    <td className="px-6 py-4">
+                      {menu.ingredients.map((item) => {
+                        // Tentukan unit berdasarkan type bahan
+                        const displayUnit = item.ingredient.type === 'SEMI_FINISHED'
+                          ? item.finishedUnit
+                          : item.unit;
+                        return `${item.ingredient.name} (${item.amount} ${displayUnit})`;
+                      }).join(", ")}
+                    </td>
                   <td className="px-6 py-4">
                     {menu.modifiers && menu.modifiers.length > 0 ? (
                       menu.modifiers.map((mod, index) => (
@@ -550,7 +554,9 @@ export function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: Ed
               <label className="block font-semibold mb-2">Price:</label>
               <input
                 type="number"
-                value={price}
+                min= "0"
+                placeholder="0"
+                value={price || ""}
                 onChange={(e) => setPrice(e.target.value)}
                 required
                 className="w-full p-2 border border-gray-300 rounded mt-1"
@@ -590,7 +596,7 @@ export function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: Ed
                     required
                     className="flex-1 p-2 border border-gray-300 rounded"
                   >
-                    <option value={0}>Pilih Ingredient</option>
+                    <option value="">Pilih Ingredient</option>
                     {availableIngredients.map((ing) => (
                       <option key={ing.id} value={ing.id}>
                         {ing.name}
@@ -601,7 +607,8 @@ export function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: Ed
                     <input
                       type="number"
                       placeholder="Amount"
-                      value={row.amount}
+                      min="0"
+                      value={row.amount || ""}
                       onChange={(e) =>
                         updateIngredientRow(index, "amount", parseFloat(e.target.value))
                       }
@@ -959,7 +966,9 @@ export function AddMenuModal({ onCloseAction, onMenuAddAction }: AddMenuModalPro
                 Price:
                 <input
                   type="number"
-                  value={price}
+                  min="0"
+                  placeholder="0"
+                  value={price || ""}
                   onChange={(e) => setPrice(e.target.value)}
                   required
                   className="w-full p-2 border border-gray-300 rounded mt-1"
@@ -1041,7 +1050,7 @@ export function AddMenuModal({ onCloseAction, onMenuAddAction }: AddMenuModalPro
                     required
                     className="flex-1 p-2 border border-gray-300 rounded"
                   >
-                    <option value={0}>Pilih Ingredient</option>
+                    <option value="">Pilih Ingredient</option>
                     {availableIngredients.map((ing) => (
                       <option key={ing.id} value={ing.id}>
                         {ing.name}
@@ -1052,7 +1061,8 @@ export function AddMenuModal({ onCloseAction, onMenuAddAction }: AddMenuModalPro
                     <input
                       type="number"
                       placeholder="Amount"
-                      value={row.amount}
+                      min="0"
+                      value={row.amount || ""}
                       onChange={(e) =>
                         updateIngredientRow(index, "amount", parseFloat(e.target.value))
                       }

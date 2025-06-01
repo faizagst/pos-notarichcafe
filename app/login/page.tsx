@@ -3,6 +3,9 @@
 import { useEffect, useState, FormEvent } from "react";
 import { LucideEye, LucideEyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
+
+
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -198,12 +201,19 @@ export default function LoginPage() {
   return (
     <div
       className="flex items-center justify-center min-h-screen bg-cover bg-center p-4"
-      style={{ backgroundImage: "url('/login2.png')" }}
+      style={{ backgroundImage: "url('/login2.webp')" }}
     >
       <div className="relative w-full max-w-md p-6 bg-white bg-opacity-80 rounded-lg shadow-lg md:max-w-lg lg:max-w-xl">
         {/* Logo */}
         <div className="text-center mb-1">
-          <img src="/logo-notarich-transparent.png" alt="Logo" className="mx-auto h-24" />
+          <Image
+            src="/logo-notarich-transparent.webp"
+            alt="Logo"
+            width={160}
+            height={120}
+            priority // <-- penting untuk LCP image
+            className="mx-auto"
+          />
         </div>
         <h2 className="text-2xl font-bold text-center mb-4 text-black">Log In</h2>
         {errorMessage && (

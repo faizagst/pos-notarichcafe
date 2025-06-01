@@ -52,51 +52,47 @@ export async function GET(req: NextRequest) {
   let endDate = end ? new Date(end) : null;
 
   if (!startDate && dateParam && period) {
-    const isPrev = period.endsWith('-prev');
-    const basePeriod = period.replace('-prev', '');
     const baseDate = new Date(dateParam);
-    period = basePeriod;
+    let range = 3; // default for daily, weekly, monthly
+    if (period === 'yearly') range = 1;
 
-    switch (basePeriod) {
+    switch (period) {
       case 'daily':
         startDate = new Date(baseDate);
-        if (isPrev) startDate.setDate(startDate.getDate() - 1);
-        endDate = new Date(startDate);
+        startDate.setDate(startDate.getDate() - range);
+        endDate = new Date(baseDate);
         break;
 
       case 'weekly':
-        const day = baseDate.getDay() || 7;
-        startDate = new Date(baseDate);
-        startDate.setDate(startDate.getDate() - day + 1);
-        if (isPrev) startDate.setDate(startDate.getDate() - 7);
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
+        const baseDay = baseDate.getDay() || 7;
+        const endWeek = new Date(baseDate);
+        endWeek.setDate(endWeek.getDate() - baseDay + 1 + 6); // End of week
+        endDate = endWeek;
+
+        const startWeek = new Date(endWeek);
+        startWeek.setDate(startWeek.getDate() - range * 7);
+        startDate = startWeek;
         break;
 
       case 'monthly':
-        startDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-        if (isPrev) startDate.setMonth(startDate.getMonth() - 1);
-        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        startDate = new Date(baseDate.getFullYear(), baseDate.getMonth() - range, 1);
+        endDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
         break;
 
       case 'yearly':
-        startDate = new Date(baseDate.getFullYear(), 0, 1);
-        if (isPrev) startDate.setFullYear(startDate.getFullYear() - 1);
-        endDate = new Date(startDate.getFullYear(), 11, 31);
+        startDate = new Date(baseDate.getFullYear() - range, 0, 1);
+        endDate = new Date(baseDate.getFullYear(), 11, 31);
         break;
+
+      default:
+        return NextResponse.json({ error: 'Invalid period' }, { status: 400 });
     }
   }
 
-  if (startDate) {
-    startDate.setHours(0, 0, 0, 0);
-  }
-
-  if (endDate) {
-    endDate.setHours(23, 59, 59, 999);
-  }
+  if (startDate) startDate.setHours(0, 0, 0, 0);
+  if (endDate) endDate.setHours(23, 59, 59, 999);
 
   let query = '';
-
   try {
     switch (period) {
       case 'daily':
@@ -105,9 +101,8 @@ export async function GET(req: NextRequest) {
             DATE_FORMAT(createdAt, '%Y-%m-%d') AS label,
             COUNT(*) as transactionCount,
             SUM(finalTotal) as netSales
-          FROM CompletedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
+          FROM completedOrder
+          WHERE createdAt BETWEEN ? AND ?
           GROUP BY label
           ORDER BY label
         `;
@@ -119,9 +114,8 @@ export async function GET(req: NextRequest) {
             DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-W%v') AS label,
             COUNT(*) as transactionCount,
             SUM(finalTotal) as netSales
-          FROM CompletedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
+          FROM completedOrder
+          WHERE createdAt BETWEEN ? AND ?
           GROUP BY label
           ORDER BY label
         `;
@@ -133,9 +127,8 @@ export async function GET(req: NextRequest) {
             DATE_FORMAT(createdAt, '%Y-%m') AS label,
             COUNT(*) as transactionCount,
             SUM(finalTotal) as netSales
-          FROM CompletedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
+          FROM completedOrder
+          WHERE createdAt BETWEEN ? AND ?
           GROUP BY label
           ORDER BY label
         `;
@@ -147,20 +140,15 @@ export async function GET(req: NextRequest) {
             DATE_FORMAT(createdAt, '%Y') AS label,
             COUNT(*) as transactionCount,
             SUM(finalTotal) as netSales
-          FROM CompletedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
+          FROM completedOrder
+          WHERE createdAt BETWEEN ? AND ?
           GROUP BY label
           ORDER BY label
         `;
         break;
-
-      default:
-        return NextResponse.json({ error: 'Invalid period' }, { status: 400 });
     }
 
-    const values = [startDate, startDate, endDate, endDate];
-    const [rows] = await db.query<RowDataPacket[]>(query, values);
+    const [rows] = await db.query<RowDataPacket[]>(query, [startDate, endDate]);
 
     const rawResult = rows.map(row => ({
       date: row.label,

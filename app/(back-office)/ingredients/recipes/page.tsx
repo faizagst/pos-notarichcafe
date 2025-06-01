@@ -5,11 +5,14 @@ interface Ingredient {
   id: number;
   name: string;
   unit: string;
+  type: string;
 }
 
 interface MenuIngredient {
   id: number;
   amount: number;
+  unit: string;
+  finishedUnit: string;
   ingredient: Ingredient;
 }
 
@@ -98,8 +101,8 @@ export default function ManagerMenusPage() {
       <div className="flex space-x-4 border-b pb-3 mb-6">
         <button
           className={`px-4 py-2 font-medium ${activeTab === "menu"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500"
+            ? "text-blue-600 border-b-2 border-blue-600"
+            : "text-gray-500"
             }`}
           onClick={() => setActiveTab("menu")}
         >
@@ -107,8 +110,8 @@ export default function ManagerMenusPage() {
         </button>
         <button
           className={`px-4 py-2 font-medium ${activeTab === "semi_ingredient"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500"
+            ? "text-blue-600 border-b-2 border-blue-600"
+            : "text-gray-500"
             }`}
           onClick={() => setActiveTab("semi_ingredient")}
         >
@@ -155,7 +158,13 @@ export default function ManagerMenusPage() {
                     <td className="px-6 py-4 whitespace-nowrap">{menu.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{menu.ingredients.length}</td>
                     <td className="px-6 py-4">
-                      {menu.ingredients.map((item) => item.ingredient.name).join(", ")}
+                      {menu.ingredients.map((item) => {
+                        // Tentukan unit berdasarkan type bahan
+                        const displayUnit = item.ingredient.type === 'SEMI_FINISHED'
+                          ? item.finishedUnit
+                          : item.unit;
+                        return `${item.ingredient.name} (${item.amount} ${displayUnit})`;
+                      }).join(", ")}
                     </td>
                   </tr>
                 ))}

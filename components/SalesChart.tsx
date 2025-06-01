@@ -27,9 +27,16 @@ interface SalesDetailItem {
   createdAt: string;
   total: number;
   items: {
+    orderItemId: number;
     menuName: string;
     quantity: number;
-    price: number;
+    menuUnitPrice: number;
+    appliedModifiers:
+    {
+      modifierId: number;
+      name: string;
+      price: number;
+    }[]
   }[];
 }
 
@@ -105,9 +112,9 @@ export default function SalesChart() {
           } else {
             setSalesData(data);
           }
-        } else {
-          console.error("Data tidak dalam format array");
-          setSalesData([]);
+        // } else {
+        //   console.error("Data tidak dalam format array");
+        //   setSalesData([]);
         }
       } catch (error) {
         console.error("Error fetching sales data:", error);
@@ -226,14 +233,14 @@ export default function SalesChart() {
 
       {/* Export & Revenue */}
       <div className="flex gap-4 mb-6">
-        <ExportButton data={exportData} columns={exportColumns} fileName="laporan_penjualan" dropdownAlign="left"/>
+        <ExportButton data={exportData} columns={exportColumns} fileName="laporan_penjualan" dropdownAlign="left" />
       </div>
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <p className="text-lg font-semibold text-[#212121]">
           Total Pendapatan:{" "}
           <span className="text-[#FF8A00]">Rp {totalRevenue.toLocaleString()}</span>
         </p>
-      </div>
+      </div> */}
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={400}>
@@ -301,7 +308,7 @@ export default function SalesChart() {
                         <th className="border px-2 py-1">Order ID</th>
                         <th className="border px-2 py-1">Tanggal</th>
                         <th className="border px-2 py-1">Total</th>
-                        <th className="border px-2 py-1">Items</th>
+                        <th className="border px-2 py-1">Items & Modifier</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -317,8 +324,18 @@ export default function SalesChart() {
                           <td className="border px-2 py-1 space-y-1">
                             {order.items.map((item, idx) => (
                               <div key={idx}>
-                                {item.menuName} x{item.quantity} (Rp{" "}
-                                {item.price.toLocaleString()})
+                                {item.menuName} x {item.quantity}
+                                {/* Check if appliedModifiers exists and has items */}
+                                {item.appliedModifiers && item.appliedModifiers.length > 0 && (
+                                 <div className="pl-3 mt-1 text-xs text-gray-600">
+                                  <span className="font-semibold">Modifiers:</span>
+                                    {item.appliedModifiers.map((modifier) => (
+                                      <div key={modifier.modifierId}>
+                                        └ {modifier.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </td>

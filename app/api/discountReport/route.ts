@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { RowDataPacket } from 'mysql2';
 
 interface DiscountReportResponse {
-  name: string;
-  discount: string;
-  count: number;
-  grossDiscount: number;
+  name: string;         // Nama program diskon atau "Diskon [Nama Menu]" atau "Diskon Manual (Kasir)"
+  discount: string;     // Representasi string dari nilai diskon (mis. "10%" atau "Rp 5.000"), atau "-" untuk agregat nominal
+  count: number;        // Jumlah pesanan yang menggunakan diskon ini / jumlah item menu terjual dengan diskon
+  grossDiscount: number; // Total nilai nominal diskon yang diatribusikan ke kategori ini
 }
 
 function getStartAndEndDates(period: string, dateString: string): { startDate: Date; endDate: Date } {
@@ -20,8 +21,8 @@ function getStartAndEndDates(period: string, dateString: string): { startDate: D
       endDate.setDate(startDate.getDate() + 1);
       break;
     case "weekly": {
-      const day = date.getDay();
-      const diff = date.getDate() - (day === 0 ? 6 : day - 1);
+      const day = date.getDay(); // 0 (Minggu) - 6 (Sabtu)
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
       startDate = new Date(date.getFullYear(), date.getMonth(), diff);
       endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 7);
@@ -48,7 +49,11 @@ export async function GET(req: NextRequest) {
     const date = url.searchParams.get('date');
     const startDateQuery = url.searchParams.get('startDate');
     const endDateQuery = url.searchParams.get('endDate');
-    const formatCurrency = (num: number): string => "Rp " + num.toLocaleString("id-ID");
+    
+    const formatCurrency = (num: number): string => {
+      if (isNaN(num)) return "Rp 0";
+      return "Rp " + num.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
 
     let startDate: Date;
     let endDate: Date;
@@ -62,70 +67,102 @@ export async function GET(req: NextRequest) {
       ({ startDate, endDate } = getStartAndEndDates(period, dateStr));
     }
 
-    const [rows]: any = await db.execute(
-      `SELECT co.id AS orderId, co.discountId, co.discountAmount AS totalDiscount, co.createdAt,
-              IFNULL(d.name, 'Diskon Manual') AS discountName,
-              IFNULL(d.value, co.discountAmount) AS value,
-              d.type,
-              (
-                SELECT IFNULL(SUM(coi.discountAmount), 0)
-                FROM completedOrderItem coi
-                WHERE coi.orderId = co.id
-              ) AS itemDiscount
-       FROM completedOrder co
-       LEFT JOIN discount d ON co.discountId = d.id
-       WHERE co.createdAt BETWEEN ? AND ?
-         AND (co.discountId IS NOT NULL OR co.discountAmount > 0)`,
+    // Query 1: Untuk data diskon tingkat pesanan
+    const [orderLevelDataRows] = await db.execute<RowDataPacket[]>(
+      `SELECT 
+          co.id AS orderId, 
+          co.discountId, 
+          co.discountAmount AS orderGrandTotalDiscount,
+          d.name AS discountProgramName,
+          d.value AS discountProgramValue,
+          d.type AS discountProgramType,
+          (SELECT IFNULL(SUM(coi_inner.discountAmount), 0) 
+           FROM completedOrderItem coi_inner 
+           WHERE coi_inner.orderId = co.id) AS sumItemDiscountsInOrder
+      FROM completedOrder co
+      LEFT JOIN discount d ON co.discountId = d.id
+      WHERE co.createdAt >= ? AND co.createdAt < ? AND co.discountAmount > 0;`,
+      [startDate, endDate]
+    );
+
+    // Query 2: Untuk rincian diskon per item menu
+    const [itemSpecificDiscountRows] = await db.execute<RowDataPacket[]>(
+      `SELECT 
+          m.id AS menuId,
+          m.name AS menuName,
+          coi.discountAmount AS itemDiscountValue
+      FROM completedOrderItem coi
+      JOIN menu m ON coi.menuId = m.id
+      JOIN completedOrder co ON coi.orderId = co.id
+      WHERE co.createdAt >= ? AND co.createdAt < ? AND coi.discountAmount > 0;`,
       [startDate, endDate]
     );
 
     const aggregated: Record<string, DiscountReportResponse> = {};
 
-    for (const row of rows) {
-      const itemDiscount = Number(row.itemDiscount) || 0;
-      const totalDiscount = Number(row.totalDiscount) || 0;
+    // Proses diskon tingkat pesanan (kasir)
+    for (const row of orderLevelDataRows) {
+      const sumItemDiscountsInOrder = Number(row.sumItemDiscountsInOrder || 0);
+      const orderGrandTotalDiscount = Number(row.orderGrandTotalDiscount || 0);
+      const orderLevelOnlyDiscount = orderGrandTotalDiscount - sumItemDiscountsInOrder;
 
-      const cashierDiscount = totalDiscount - itemDiscount;
+      if (orderLevelOnlyDiscount > 0) {
+        let key: string;
+        let name: string;
+        let discountStr: string;
 
-      // 1. Diskon Menu (manual)
-      if (itemDiscount > 0) {
-        if (!aggregated["menu"]) {
-          aggregated["menu"] = {
-            name: "Diskon Menu",
-            discount: "-",
-            count: 0,
-            grossDiscount: 0,
-          };
+        if (row.discountId) { // Diskon terprogram dari kasir
+          key = `order_discount_program_${row.discountId}`;
+          name = String(row.discountProgramName || `Program Diskon ID ${row.discountId}`);
+          const val = Number(row.discountProgramValue);
+          discountStr = row.discountProgramType === "PERCENTAGE" ? `${val}%` : formatCurrency(val);
+        } else { // Diskon manual dari kasir
+          key = "manual_order_discount";
+          name = "Diskon Manual (Kasir)";
+          discountStr = "-"; // Nilai nominalnya ada di grossDiscount
         }
-        aggregated["menu"].count += 1;
-        aggregated["menu"].grossDiscount += itemDiscount;
-      }
 
-      // 2. Diskon Kasir (dari discountId)
-      if (row.discountId && cashierDiscount > 0) {
-        const key = row.discountId.toString();
         if (!aggregated[key]) {
           aggregated[key] = {
-            name: row.discountName,
-            discount: row.type === "PERCENTAGE" ? `${row.value}%` : formatCurrency(Number(row.value)),
+            name: name,
+            discount: discountStr,
             count: 0,
             grossDiscount: 0,
           };
         }
-        aggregated[key].count += 1;
-        aggregated[key].grossDiscount += cashierDiscount;
+        aggregated[key].count += 1; // Menghitung jumlah pesanan yang mendapat diskon order-level ini
+        aggregated[key].grossDiscount += orderLevelOnlyDiscount;
       }
     }
 
+    // Proses diskon spesifik per item menu
+    for (const row of itemSpecificDiscountRows) {
+      const menuId = Number(row.menuId);
+      const menuName = String(row.menuName);
+      const itemDiscountValue = Number(row.itemDiscountValue || 0);
+      const key = `item_menu_discount_${menuId}`;
+
+      if (!aggregated[key]) {
+        aggregated[key] = {
+          name: `Diskon ${menuName}`,
+          discount: "-", 
+          count: 0,
+          grossDiscount: 0,
+        };
+      }
+      // Setiap baris dari query ini adalah satu item menu yang terjual dengan diskon
+      aggregated[key].count += 1; 
+      aggregated[key].grossDiscount += itemDiscountValue;
+    }
+    
     const result = Object.values(aggregated).sort((a, b) => b.grossDiscount - a.grossDiscount);
     return NextResponse.json(result, { status: 200 });
+
   } catch (error) {
     console.error("Error in discount-report API:", error);
+    const message = error instanceof Error ? error.message : "Unknown error occurred";
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Internal server error", message: message },
       { status: 500 }
     );
   }

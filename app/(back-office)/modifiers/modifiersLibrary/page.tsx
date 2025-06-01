@@ -272,7 +272,8 @@ export default function ModifierPage() {
                 <input
                   type="number"
                   name="price"
-                  value={formData.price}
+                  placeholder="0"
+                  value={formData.price || ""}
                   onChange={handleInputChange}
                   required
                   min="0"
@@ -299,7 +300,7 @@ export default function ModifierPage() {
                     border: "1px solid #ccc",
                   }}
                 >
-                  <option value={0}>Pilih Kategori</option>
+                  <option value="">Pilih Kategori</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -320,8 +321,9 @@ export default function ModifierPage() {
                         borderRadius: "4px",
                         border: "1px solid #ccc",
                       }}
+                      required
                     >
-                      <option value={0}>Pilih Ingredient</option>
+                      <option value="">Pilih Ingredient</option>
                       {ingredients.map((ingredient) => (
                         <option key={ingredient.id} value={ingredient.id}>
                           {ingredient.name}
@@ -330,9 +332,10 @@ export default function ModifierPage() {
                     </select>
                     <input
                       type="number"
-                      value={ing.amount}
+                      value={ing.amount || ""}
                       onChange={(e) => handleIngredientChange(index, "amount", e.target.value)}
-                      placeholder="Amount"
+                      placeholder="0"
+                      required
                       min="0"
                       step="0.01"
                       style={{

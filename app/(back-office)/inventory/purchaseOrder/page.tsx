@@ -161,7 +161,8 @@ const PurchaseOrderForm: React.FC = () => {
               <input
                 type="number"
                 name="quantity"
-                value={form.quantity}
+                placeholder="0"
+                value={form.quantity || ""}
                 onChange={handleInputChange}
                 required
                 min={1}
@@ -175,7 +176,8 @@ const PurchaseOrderForm: React.FC = () => {
               <input
                 type="number"
                 name="totalPrice"
-                value={form.totalPrice}
+                placeholder="0"
+                value={form.totalPrice || ""}
                 onChange={handleInputChange}
                 required
                 min={1}

@@ -38,6 +38,8 @@ export async function GET(_req: NextRequest) {
       if (!ingredientMap.has(menuId)) ingredientMap.set(menuId, []);
       ingredientMap.get(menuId)!.push({
         amount: row.amount,
+        unit: row.unit,
+        finishedUnit: row.finishedUnit,
         ingredient: {
           id: row.id,
           name: row.name,
@@ -90,7 +92,8 @@ export async function GET(_req: NextRequest) {
           let cost = 0;
 
           if (ingredient.type.toUpperCase() === 'SEMI_FINISHED' && batchYield > 0) {
-            cost = (amount / batchYield) * price;
+            // cost = (amount / batchYield) * price;
+            cost = amount * price;
           } else {
             cost = amount * price;
           }

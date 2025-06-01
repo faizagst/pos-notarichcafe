@@ -83,6 +83,7 @@ interface BackofficePermissions {
   viewRecap: {
     stockCafe: boolean;
     stockInventory: boolean;
+    prediction: boolean;
   };
 
   // View Employees
@@ -146,6 +147,7 @@ export const DEFAULT_BACKOFFICE_PERMISSIONS: BackofficePermissions = {
   viewRecap: {
     stockCafe: false,
     stockInventory: false,
+    prediction: false,
   },
 
   viewEmployeesParent: false,

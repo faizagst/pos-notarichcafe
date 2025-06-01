@@ -74,7 +74,7 @@ const DailyIngredientStock = () => {
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <label htmlFor="end-date" className="font-medium text-gray-700">
               Sampai (Opsional):
             </label>
@@ -86,7 +86,7 @@ const DailyIngredientStock = () => {
               className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
               disabled={!startDate}
             />
-          </div>
+          </div> */}
 
           <button onClick={handleSearch} className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded shadow">
             Cari

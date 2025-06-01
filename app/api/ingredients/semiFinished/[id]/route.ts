@@ -5,7 +5,9 @@ type PayloadUpdate = {
   name: string;
   categoryId: number;
   finishedUnit: string;
-  producedQuantity: number;
+  stockIn: number;
+  wasted: number;
+  stockMin: number;
   type: 'SEMI_FINISHED';
   price: number;
   composition: Array<{
@@ -14,8 +16,8 @@ type PayloadUpdate = {
   }>;
 };
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id;
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   if (!id || isNaN(Number(id))) {
     return NextResponse.json({ message: 'Invalid ingredient id' }, { status: 400 });
   }
@@ -26,7 +28,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     name,
     categoryId,
     finishedUnit,
-    producedQuantity,
+    stockIn,
+    wasted,
+    stockMin,
     type,
     price,
     composition,
@@ -36,7 +40,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     !name ||
     !categoryId ||
     !finishedUnit ||
-    producedQuantity === undefined ||
+    stockIn === undefined ||
+    wasted === undefined ||
+    stockMin === undefined ||
     !type ||
     price === undefined ||
     !composition ||
@@ -49,29 +55,65 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   await connection.beginTransaction();
 
   try {
-    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh ingredient lain
-    if (body.name) {
-      const [existingRows]: any = await db.query(
-        'SELECT id FROM ingredient WHERE name = ? AND id != ?',
-        [body.name, ingredientId]
-      );
-      if (existingRows.length > 0) {
-        return NextResponse.json({ message: 'Ingredient name already exists' }, { status: 409 });
-      }
+    // Cek apakah nama sudah dipakai oleh bahan lain
+    const [existingRows]: any = await connection.query(
+      'SELECT id FROM ingredient WHERE name = ? AND id != ?',
+      [name, ingredientId]
+    );
+    if (existingRows.length > 0) {
+      return NextResponse.json({ message: 'Ingredient name already exists' }, { status: 409 });
     }
-    // Update data ingredient
+
+    // Ambil data lama untuk perhitungan
+    const [ingredientRows]: any = await connection.query(
+      `SELECT start, stockIn AS oldStockIn, used, wasted, stock FROM ingredient WHERE id = ?`,
+      [ingredientId]
+    );
+    if (ingredientRows.length === 0) {
+      return NextResponse.json({ message: 'Ingredient not found' }, { status: 404 });
+    }
+
+    const old = ingredientRows[0];
+    const newStockIn = old.oldStockIn + stockIn;
+    const totalWasted = wasted;
+    const isProducing = stockIn > 0;
+
+    // Hitung stock baru
+    let newStock = old.start + newStockIn - old.used - totalWasted;
+    if (newStock < 0) {
+      await connection.rollback();
+      connection.release();
+      return NextResponse.json({ message: 'Stock result cannot be negative' }, { status: 400 });
+    }
+
+    // Update ingredient
     await connection.execute(
-      `UPDATE ingredient SET name = ?, categoryId = ?, finishedUnit = ?, type = ?, price = ?, start = ?, stockIn = 0, used = 0, wasted = 0, stock = ?, stockMin = 0, unit = ?, batchYield = ?, isActive = true WHERE id = ?`,
+      `UPDATE ingredient SET 
+        name = ?, 
+        categoryId = ?, 
+        finishedUnit = ?, 
+        type = ?, 
+        price = ?, 
+        stockIn = ?, 
+        wasted = ?, 
+        stockMin = ?, 
+        stock = ?, 
+        unit = ?, 
+        batchYield = ?, 
+        isActive = true 
+      WHERE id = ?`,
       [
         name,
         categoryId,
         finishedUnit,
         type,
         price,
-        producedQuantity,
-        producedQuantity,
+        newStockIn,
+        totalWasted,
+        stockMin,
+        newStock,
         finishedUnit,
-        producedQuantity,
+        newStockIn,
         ingredientId,
       ]
     );
@@ -82,40 +124,48 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       [ingredientId]
     );
 
-    // Tambahkan komposisi baru dan update stok masing-masing bahan raw
+    // Tambahkan komposisi baru
     for (const comp of composition) {
       if (!comp.rawIngredientId || comp.amount === undefined) continue;
 
-      // Insert komposisi baru
       await connection.execute(
         `INSERT INTO ingredientComposition (semiIngredientId, rawIngredientId, amount) VALUES (?, ?, ?)`,
         [ingredientId, comp.rawIngredientId, comp.amount]
       );
 
-      // Ambil data bahan baku lama
-      const [raws] = await connection.execute(
-        `SELECT start, stockIn, used, wasted FROM ingredient WHERE id = ?`,
-        [comp.rawIngredientId]
-      );
-      const raw: any = Array.isArray(raws) ? raws[0] : null;
+      // Jika produksi, kurangi stock bahan baku
+      if (isProducing && stockIn > 0) {
+        const [raws]: any = await connection.query(
+          `SELECT start, stockIn, used, wasted FROM ingredient WHERE id = ?`,
+          [comp.rawIngredientId]
+        );
+        const raw = raws[0];
+        if (!raw) continue;
 
-      if (raw) {
-        const newUsed = raw.used + comp.amount;
-        const newStock = raw.start + raw.stockIn - newUsed - raw.wasted;
+        const usedAddition = comp.amount * stockIn;
+        const newUsed = raw.used + usedAddition;
+        const newRawStock = raw.start + raw.stockIn - newUsed - raw.wasted;
+
+        if (newRawStock < 0) {
+          await connection.rollback();
+          connection.release();
+          return NextResponse.json({
+            message: `Stock for raw ingredient ID ${comp.rawIngredientId} would be negative (used ${usedAddition} > available stock)`,
+          }, { status: 400 });
+        }
 
         await connection.execute(
           `UPDATE ingredient SET used = ?, stock = ? WHERE id = ?`,
-          [newUsed, newStock, comp.rawIngredientId]
+          [newUsed, newRawStock, comp.rawIngredientId]
         );
       }
+
     }
 
     await connection.commit();
     connection.release();
 
-    return NextResponse.json({
-      message: 'Semi finished ingredient updated successfully',
-    });
+    return NextResponse.json({ message: 'Semi finished ingredient updated successfully' });
   } catch (error) {
     await connection.rollback();
     connection.release();

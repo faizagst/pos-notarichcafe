@@ -47,9 +47,9 @@ export default function Stats() {
           <div className="bg-slate-200  p-4 rounded-lg shadow">
             <SalesTransactionChart />
           </div>
-          <div className="bg-slate-200  p-4 rounded-lg shadow">
+          {/* <div className="bg-slate-200  p-4 rounded-lg shadow">
             <RevenueByCategoryChart />
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

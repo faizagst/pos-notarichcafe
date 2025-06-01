@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Image from 'next/image';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -36,14 +37,17 @@ export default function ForgotPasswordPage() {
   return (
     <div
       className="flex items-center justify-center min-h-screen bg-cover bg-center p-4"
-      style={{ backgroundImage: "url('/login2.png')" }}
+      style={{ backgroundImage: "url('/login2.webp')" }}
     >
       <div className="relative w-full max-w-md p-6 bg-white bg-opacity-80 rounded-lg shadow-lg">
         <div className="text-center mb-1">
-          <img
-            src="/logo-notarich-transparent.png"
+          <Image
+            src="/logo-notarich-transparent.webp"
             alt="Logo"
-            className="mx-auto h-20 md:h-24 object-contain"
+            width={160}
+            height={120}
+            priority // <-- penting untuk LCP image
+            className="mx-auto"
           />
         </div>
         <h2 className="text-2xl font-bold text-center mb-4 text-black">Lupa Password</h2>

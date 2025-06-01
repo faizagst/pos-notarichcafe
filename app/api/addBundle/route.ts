@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
       for (const row of parsed) {
         const [rows] = await db.execute(
-          `SELECT hargaBakul FROM Menu WHERE id = ?`,
+          `SELECT hargaBakul FROM menu WHERE id = ?`,
           [row.menuId]
         );
 
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     // Simpan bundle ke database
     const [result] = await db.execute(
-      `INSERT INTO Menu (name, description, image, price, category, Status, type, hargaBakul)
+      `INSERT INTO menu (name, description, image, price, category, Status, type, hargaBakul)
        VALUES (?, ?, ?, ?, 'bundle', 'tersedia', 'BUNDLE', ?)`,
       [name, description || null, imagePath, parseFloat(price), totalHargaBakul]
     );
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       const parsed = JSON.parse(includedMenus);
       for (const row of parsed) {
         await db.execute(
-          `INSERT INTO MenuComposition (bundleId, menuId, amount) VALUES (?, ?, ?)`,
+          `INSERT INTO menuComposition (bundleId, menuId, amount) VALUES (?, ?, ?)`,
           [newBundleId, row.menuId, row.amount]
         );
       }
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     // Simpan discount
     if (discountId && discountId.trim() !== "") {
       await db.execute(
-        `INSERT INTO MenuDiscount (menuId, discountId) VALUES (?, ?)`,
+        `INSERT INTO menuDiscount (menuId, discountId) VALUES (?, ?)`,
         [newBundleId, parseInt(discountId)]
       );
     }
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       const parsed = JSON.parse(modifierIds);
       for (const modId of parsed) {
         await db.execute(
-          `INSERT INTO MenuModifier (menuId, modifierId) VALUES (?, ?)`,
+          `INSERT INTO menuModifier (menuId, modifierId) VALUES (?, ?)`,
           [newBundleId, modId]
         );
       }

@@ -43,118 +43,120 @@ function generateDateRange(period: string, start: Date, end: Date): string[] {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  let period = searchParams.get('period')!;
-  const start = searchParams.get('start');
-  const end = searchParams.get('end');
+  const period = searchParams.get('period');
   const dateParam = searchParams.get('date');
+  const startParam = searchParams.get('start');
+  const endParam = searchParams.get('end');
 
-  let startDate = start ? new Date(start) : null;
-  let endDate = end ? new Date(end) : null;
+  if (!period) {
+    return NextResponse.json({ error: 'Missing period parameter' }, { status: 400 });
+  }
 
-  if (!startDate && dateParam && period) {
-    const isPrev = period.endsWith('-prev');
-    const basePeriod = period.replace('-prev', '');
+  let startDate: Date;
+  let endDate: Date;
+
+  if (period === 'daily' && startParam && endParam) {
+    startDate = new Date(startParam);
+    endDate = new Date(endParam);
+  } else if (dateParam) {
     const baseDate = new Date(dateParam);
-    period = basePeriod;
+    let periodsBack = 3;
+    if (period === 'yearly') periodsBack = 1;
 
-    switch (basePeriod) {
-      case 'daily':
-        startDate = new Date(baseDate);
-        if (isPrev) startDate.setDate(startDate.getDate() - 1);
-        endDate = new Date(startDate);
-        break;
-
-      case 'weekly':
-        const day = baseDate.getDay() || 7;
-        startDate = new Date(baseDate);
-        startDate.setDate(startDate.getDate() - day + 1);
-        if (isPrev) startDate.setDate(startDate.getDate() - 7);
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-        break;
-
-      case 'monthly':
-        startDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-        if (isPrev) startDate.setMonth(startDate.getMonth() - 1);
-        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-        break;
-
-      case 'yearly':
-        startDate = new Date(baseDate.getFullYear(), 0, 1);
-        if (isPrev) startDate.setFullYear(startDate.getFullYear() - 1);
-        endDate = new Date(startDate.getFullYear(), 11, 31);
-        break;
-    }
-  }
-
-  if (startDate) {
-    startDate.setHours(0, 0, 0, 0);
-  }
-
-  if (endDate) {
-    endDate.setHours(23, 59, 59, 999);
-  }
-
-  let query = '';
-  try {
     switch (period) {
       case 'daily':
-        query = `
-          SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS label, SUM(finalTotal) AS total
-          FROM completedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
-          GROUP BY label
-          ORDER BY label
-        `;
+        startDate = new Date(baseDate);
+        startDate.setDate(startDate.getDate() - periodsBack);
+        endDate = new Date(baseDate);
         break;
 
       case 'weekly':
-        query = `
-          SELECT DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-W%v') AS label, SUM(finalTotal) AS total
-          FROM completedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
-          GROUP BY label
-          ORDER BY label
-        `;
+        const baseDay = baseDate.getDay() || 7;
+        endDate = new Date(baseDate);
+        endDate.setDate(endDate.getDate() - baseDay + 1);
+        startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - 7 * periodsBack);
+        endDate.setDate(endDate.getDate() + 6);
         break;
 
       case 'monthly':
-        query = `
-          SELECT DATE_FORMAT(createdAt, '%Y-%m') AS label, SUM(finalTotal) AS total
-          FROM completedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
-          GROUP BY label
-          ORDER BY label
-        `;
+        startDate = new Date(baseDate.getFullYear(), baseDate.getMonth() - periodsBack, 1);
+        endDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
         break;
 
       case 'yearly':
-        query = `
-          SELECT DATE_FORMAT(createdAt, '%Y') AS label, SUM(finalTotal) AS total
-          FROM completedOrder
-          WHERE (? IS NULL OR createdAt >= ?)
-            AND (? IS NULL OR createdAt <= ?)
-          GROUP BY label
-          ORDER BY label
-        `;
+        startDate = new Date(baseDate.getFullYear() - periodsBack, 0, 1);
+        endDate = new Date(baseDate.getFullYear(), 11, 31);
         break;
 
       default:
         return NextResponse.json({ error: 'Invalid period' }, { status: 400 });
     }
+  } else {
+    return NextResponse.json({ error: 'Missing date or start/end parameter' }, { status: 400 });
+  }
 
-    const values = [startDate, startDate, endDate, endDate];
-    const [rows] = await db.query<RowDataPacket[]>(query, values);
+  // Validasi tanggal
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+  }
+
+  // Normalisasi jam
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
+
+  let query = '';
+  switch (period) {
+    case 'daily':
+      query = `
+        SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS label, SUM(finalTotal) AS total
+        FROM completedOrder
+        WHERE createdAt BETWEEN ? AND ?
+        GROUP BY label
+        ORDER BY label
+      `;
+      break;
+
+    case 'weekly':
+      query = `
+        SELECT DATE_FORMAT(DATE_SUB(createdAt, INTERVAL WEEKDAY(createdAt) DAY), '%Y-W%v') AS label, SUM(finalTotal) AS total
+        FROM completedOrder
+        WHERE createdAt BETWEEN ? AND ?
+        GROUP BY label
+        ORDER BY label
+      `;
+      break;
+
+    case 'monthly':
+      query = `
+        SELECT DATE_FORMAT(createdAt, '%Y-%m') AS label, SUM(finalTotal) AS total
+        FROM completedOrder
+        WHERE createdAt BETWEEN ? AND ?
+        GROUP BY label
+        ORDER BY label
+      `;
+      break;
+
+    case 'yearly':
+      query = `
+        SELECT DATE_FORMAT(createdAt, '%Y') AS label, SUM(finalTotal) AS total
+        FROM completedOrder
+        WHERE createdAt BETWEEN ? AND ?
+        GROUP BY label
+        ORDER BY label
+      `;
+      break;
+  }
+
+  try {
+    const [rows] = await db.query<RowDataPacket[]>(query, [startDate, endDate]);
 
     const rawResult = rows.map(row => ({
       date: row.label,
       total: Number(row.total),
     }));
 
-    const defaultKeys = generateDateRange(period, startDate!, endDate!);
+    const defaultKeys = generateDateRange(period, startDate, endDate);
     const resultMap = new Map(rawResult.map(item => [item.date, item]));
     const result: SalesData[] = defaultKeys.map(date => ({
       date,

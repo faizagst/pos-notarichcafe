@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import Image from 'next/image';
 
 export default function ResetPasswordConfirmPage() {
   const [password, setPassword] = useState("");
@@ -37,7 +38,7 @@ export default function ResetPasswordConfirmPage() {
       const res = await fetch("/api/resetPassword/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, newPassword: password }), // ✅ disesuaikan
+        body: JSON.stringify({ token, newPassword: password }),
       });
 
       const data = await res.json();
@@ -48,7 +49,7 @@ export default function ResetPasswordConfirmPage() {
         setTimeout(() => router.push("/login"), 2000);
       } else {
         setStatus("error");
-        setMessage(data.message || "Gagal mereset password.");
+        setMessage(data.message || data.error || "Gagal mereset password.");
       }
     } catch (err) {
       setStatus("error");
@@ -59,14 +60,17 @@ export default function ResetPasswordConfirmPage() {
   return (
     <div
       className="flex items-center justify-center min-h-screen bg-cover bg-center p-4"
-      style={{ backgroundImage: "url('/login2.png')" }}
+      style={{ backgroundImage: "url('/login2.webp')" }}
     >
       <div className="relative w-full max-w-md p-6 bg-white bg-opacity-80 rounded-lg shadow-lg">
         <div className="text-center mb-1">
-          <img
-            src="/logo-notarich-transparent.png"
+          <Image
+            src="/logo-notarich-transparent.webp"
             alt="Logo"
-            className="mx-auto h-20 md:h-24 object-contain"
+            width={160}
+            height={120}
+            priority // <-- penting untuk LCP image
+            className="mx-auto"
           />
         </div>
         <h2 className="text-2xl font-bold text-center mb-4 text-black">Reset Password</h2>

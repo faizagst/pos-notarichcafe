@@ -52,20 +52,42 @@ export async function GET(req: NextRequest) {
       ({ startDate, endDate } = getStartAndEndDates(period, date || undefined));
     }
 
-    const [orders] = await db.query<any[]>(
-      `SELECT o.id, o.createdAt, o.total, o.finalTotal, o.discountAmount,
-              i.quantity, m.name AS menuName, m.price AS menuPrice
-       FROM completedOrder o
-       LEFT JOIN completedOrderItem i ON i.orderId = o.id
-       LEFT JOIN menu m ON i.menuId = m.id
-       WHERE o.createdAt >= ? AND o.createdAt < ?
-       ORDER BY o.createdAt ASC`,
-      [startDate, endDate]
-    );
+    const [orders] = await db.query<any[]>(`
+    SELECT 
+      o.id AS orderId,
+      o.createdAt,
+      o.total,
+      o.finalTotal,
+      o.discountAmount,
+
+      i.id AS itemId,
+      i.quantity,
+      i.price AS itemPrice,
+
+      m.name AS menuName,
+      m.price AS menuBasePrice,
+
+      md.name AS modifierName,
+      md.price AS modifierPrice
+
+    FROM completedorder o
+    LEFT JOIN completedorderitem i ON i.orderId = o.id
+    LEFT JOIN menu m ON i.menuId = m.id
+    LEFT JOIN completedorderitemmodifier im ON im.completedOrderItemId = i.id
+    LEFT JOIN modifier md ON im.modifierId = md.id
+    WHERE o.createdAt >= ? AND o.createdAt < ?
+    ORDER BY o.createdAt ASC
+  `, [startDate, endDate]);
 
     const groupedOrders = new Map<number, {
       time: Date;
-      items: { menuName: string; total: number }[];
+      items: Map<number, {
+        menuName: string;
+        quantity: number;
+        price: number;
+        modifiers: { name: string; price: number }[];
+        total: number;
+      }>;
       totalPrice: number;
     }>();
 
@@ -74,10 +96,10 @@ export async function GET(req: NextRequest) {
     let netSales = 0;
 
     for (const row of orders) {
-      if (!groupedOrders.has(row.id)) {
-        groupedOrders.set(row.id, {
+      if (!groupedOrders.has(row.orderId)) {
+        groupedOrders.set(row.orderId, {
           time: row.createdAt,
-          items: [],
+          items: new Map(),
           totalPrice: Number(row.finalTotal),
         });
         totalTransactions++;
@@ -85,16 +107,36 @@ export async function GET(req: NextRequest) {
         netSales += Number(row.total) - Number(row.discountAmount ?? 0);
       }
 
-      const order = groupedOrders.get(row.id);
-      if (row.menuName) {
-        order?.items.push({
+      const order = groupedOrders.get(row.orderId)!;
+
+      // Set item per itemId, NOT menuId
+      if (!order.items.has(row.itemId)) {
+        order.items.set(row.itemId, {
           menuName: row.menuName,
-          total: Number(row.menuPrice) * row.quantity,
+          quantity: row.quantity,
+          price: row.itemPrice,
+          modifiers: [],
+          total: row.itemPrice * row.quantity, // sudah termasuk modifier
+        });
+      }
+
+      const item = order.items.get(row.itemId)!;
+
+      // modifier hanya untuk ditampilkan
+      if (row.modifierName) {
+        item.modifiers.push({
+          name: row.modifierName,
+          price: row.modifierPrice,
         });
       }
     }
 
-    const details = Array.from(groupedOrders.values());
+    // Final details
+    const details = Array.from(groupedOrders.values()).map(order => ({
+      time: order.time,
+      items: Array.from(order.items.values()),
+      totalPrice: order.totalPrice,
+    }));
 
     return NextResponse.json({
       summary: {

@@ -80,6 +80,9 @@ export default function IngredientsTable() {
   const [semiEditCategory, setSemiEditCategory] = useState("");
   const [semiEditFinishedUnit, setSemiEditFinishedUnit] = useState("gram");
   const [semiEditProducedQuantity, setSemiEditProducedQuantity] = useState<number>(0);
+  const [semiEditStockIn, setSemiEditStockIn] = useState(0);
+  const [semiEditWasted, setSemiEditWasted] = useState(0);
+  const [semiEditStockMin, setSemiEditStockMin] = useState(0);
   const [semiEditComposition, setSemiEditComposition] = useState<SemiComposition[]>([]);
   const [editingSemi, setEditingSemi] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -250,7 +253,9 @@ export default function IngredientsTable() {
         setSemiEditName(ing.name);
         setSemiEditCategory(ing.categoryId.toString()); // Pastikan categoryId dikonversi ke string
         setSemiEditFinishedUnit(ing.finishedUnit);
-        setSemiEditProducedQuantity(ing.start); // Misal: producedQuantity disimpan di field 'start'
+        setSemiEditStockIn(ing.stockIn || 0);
+        setSemiEditWasted(ing.wasted || 0);
+        setSemiEditStockMin(ing.stockMin || 0);
 
         // Fetch data komposisi raw ingredient yang sebelumnya digunakan
         try {
@@ -282,39 +287,56 @@ export default function IngredientsTable() {
     setSemiEditCategory("");
     setSemiEditFinishedUnit("gram");
     setSemiEditProducedQuantity(0);
+    setSemiEditStockIn(0);
+    setSemiEditWasted(0);
+    setSemiEditStockMin(0);
     setSemiEditComposition([]);
     setEditingSemi(false);
+
   };
 
   // Submit modal edit untuk bahan RAW
-  const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedIngredient) return;
-    try {
-      const res = await fetch(`/api/ingredients/${selectedIngredient.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedIngredient),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Ingredient berhasil diedit!");
-        fetchIngredients();
-        calculateAndUpdateTotalPrice();
-        setIngredients(
-          ingredients.map((ing) =>
-            ing.id === selectedIngredient.id ? data.ingredient : ing
-          )
-        );
-        setSelectedIngredient(null);
-      } else {
-        toast.error(data.message || "Gagal mengupdate ingredient.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Terjadi kesalahan saat mengupdate ingredient.");
+ const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!selectedIngredient) return;
+
+  // Hitung nilai akhir baru berdasarkan original + tambahan
+  const updatedStockIn =
+    selectedIngredient.originalStockIn + (parseFloat(additionalStock) || 0);
+  const updatedWasted =
+    selectedIngredient.originalWasted + (parseFloat(additionalWasted) || 0);
+
+  try {
+    const res = await fetch(`/api/ingredients/${selectedIngredient.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...selectedIngredient,
+        stockIn: updatedStockIn,
+        wasted: updatedWasted,
+      }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      toast.success("Ingredient berhasil diedit!");
+      fetchIngredients();
+      calculateAndUpdateTotalPrice();
+      setIngredients(
+        ingredients.map((ing) =>
+          ing.id === selectedIngredient.id ? data.ingredient : ing
+        )
+      );
+      setSelectedIngredient(null);
+    } else {
+      toast.error(data.message || "Gagal mengupdate ingredient.");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    toast.error("Terjadi kesalahan saat mengupdate ingredient.");
+  }
+};
+
 
   // Submit modal edit untuk bahan SEMI_FINISHED
   const handleSemiEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -324,13 +346,16 @@ export default function IngredientsTable() {
     const payload = {
       id: selectedIngredient?.id,
       name: semiEditName,
-      categoryId: parseInt(semiEditCategory), // Menggunakan categoryId
+      categoryId: parseInt(semiEditCategory),
       finishedUnit: semiEditFinishedUnit,
-      producedQuantity: semiEditProducedQuantity,
+      stockIn: semiEditStockIn,
       type: "SEMI_FINISHED",
       price: totalCompositionPrice,
       composition: semiEditComposition,
+      wasted: semiEditWasted,
+      stockMin: semiEditStockMin,
     };
+
     try {
       const res = await fetch(`/api/ingredients/semiFinished/${selectedIngredient?.id}`, {
         method: "PUT",
@@ -362,8 +387,8 @@ export default function IngredientsTable() {
         toast.error(result.message);
         return;
       }
-    
-      toast.success(result.message); 
+
+      toast.success(result.message);
       router.push("/recapNotarich/stockCafe");
     } catch (error) {
       console.error("Error resetting daily stock:", error);
@@ -716,12 +741,12 @@ export default function IngredientsTable() {
                   onChange={(e) => {
                     const inputVal = e.target.value;
                     setAdditionalStock(inputVal);
-                    if (selectedIngredient) {
-                      setSelectedIngredient({
-                        ...selectedIngredient,
-                        stockIn: selectedIngredient.originalStockIn + (parseFloat(inputVal) || 0),
-                      });
-                    }
+                    // if (selectedIngredient) {
+                    //   setSelectedIngredient({
+                    //     ...selectedIngredient,
+                    //     stockIn: selectedIngredient.originalStockIn + (parseFloat(inputVal) || 0),
+                    //   });
+                    // }
                   }}
                   onKeyDown={handleNumberKeyDown}
                   className="w-full p-2 border border-gray-300 rounded"
@@ -769,6 +794,8 @@ export default function IngredientsTable() {
                 <label className="block font-medium mb-1">Stock Min:</label>
                 <input
                   type="number"
+                  min="0"
+                  placeholder="0"
                   value={selectedIngredient.stockMin}
                   onChange={(e) =>
                     setSelectedIngredient({
@@ -790,7 +817,6 @@ export default function IngredientsTable() {
                     setSelectedIngredient({ ...selectedIngredient, unit: e.target.value })
                   }
                   className="w-full p-2 border border-gray-300 rounded"
-                  readOnly
                 />
               </div>
               <div className="mb-4">
@@ -799,6 +825,8 @@ export default function IngredientsTable() {
                 </label>
                 <input
                   type="number"
+                  min="0"
+                  placeholder="0"
                   value={selectedIngredient.price ?? ""}
                   onChange={(e) =>
                     setSelectedIngredient({
@@ -867,12 +895,37 @@ export default function IngredientsTable() {
                 />
               </div>
               <div className="mb-4">
-                <label className="block font-medium mb-1">Jumlah Semi Ingredient yang Dibuat:</label>
+                <label className="block font-medium mb-1">Jumlah yang Dibuat (stockIn):</label>
                 <input
                   type="number"
                   min="0"
-                  value={semiEditProducedQuantity || ""}
-                  onChange={(e) => setSemiEditProducedQuantity(parseFloat(e.target.value))}
+                  value={semiEditStockIn || "0"}
+                  onChange={(e) => setSemiEditStockIn(parseFloat(e.target.value))}
+                  onKeyDown={handleNumberKeyDown}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block font-medium mb-1">Jumlah Wasted:</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={semiEditWasted || "0"}
+                  onChange={(e) => setSemiEditWasted(parseFloat(e.target.value))}
+                  onKeyDown={handleNumberKeyDown}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block font-medium mb-1">Minimal Stock:</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={semiEditStockMin || "0"}
+                  onChange={(e) => setSemiEditStockMin(parseFloat(e.target.value))}
                   onKeyDown={handleNumberKeyDown}
                   className="w-full p-2 border border-gray-300 rounded"
                   required
@@ -898,6 +951,7 @@ export default function IngredientsTable() {
                         }
                         className="p-2 border border-gray-300 rounded"
                         required
+                        disabled
                       >
                         <option value="">Pilih Raw Ingredient</option>
                         {rawIngredientsList.map((raw) => (
@@ -943,13 +997,13 @@ export default function IngredientsTable() {
                     </div>
                   );
                 })}
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setSemiEditComposition([...semiEditComposition, { rawIngredientId: "", amount: "" }])}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
                 >
                   Add Raw Ingredient
-                </button>
+                </button> */}
               </div>
               <div className="mt-4">
                 <label className="block font-medium mb-1">Total Harga Komposisi:</label>
@@ -1169,7 +1223,7 @@ export default function IngredientsTable() {
                   required
                 />
               </div>
-  
+
               {/* Row untuk Start dan Warehouse Start */}
               <div className="flex gap-4">
                 <div className="w-1/2">
@@ -1201,7 +1255,7 @@ export default function IngredientsTable() {
                   />
                 </div>
               </div>
-  
+
               {/* Input Category */}
               <div className="mb-4">
                 <label className="block font-medium mb-1">Kategori:</label>
@@ -1219,7 +1273,7 @@ export default function IngredientsTable() {
                   ))}
                 </select>
               </div>
-  
+
               {/* Row untuk Ingredient Unit dan Finished Unit */}
               <div className="flex gap-4">
                 <div className="w-1/2">
@@ -1237,7 +1291,7 @@ export default function IngredientsTable() {
                   <label className="block font-semibold mb-1">Finished Unit:</label>
                   <input
                     type="text"
-                    value={finishedUnit}
+                    value="-"
                     onChange={(e) => setFinishedUnit(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
                     placeholder="e.g., gram, liter"
@@ -1245,7 +1299,7 @@ export default function IngredientsTable() {
                   />
                 </div>
               </div>
-  
+
               {/* Input Price */}
               <div>
                 <label className="block font-semibold mb-1">Price per 1 {unit}:</label>
@@ -1261,7 +1315,7 @@ export default function IngredientsTable() {
                   placeholder="Harga per finished unit"
                 />
               </div>
-  
+
               {/* Input Stock Min */}
               <div>
                 <label className="block font-semibold mb-1">Stock Min / Alert at:</label>
@@ -1277,7 +1331,7 @@ export default function IngredientsTable() {
                   placeholder="Minimal stok"
                 />
               </div>
-  
+
               {/* Readonly fields: Stock In, Used, Wasted */}
               <div>
                 <label className="block font-semibold mb-1">Stock In:</label>
@@ -1290,7 +1344,7 @@ export default function IngredientsTable() {
                   step="any"
                 />
               </div>
-  
+
               <div>
                 <label className="block font-semibold mb-1">Used:</label>
                 <input
@@ -1302,7 +1356,7 @@ export default function IngredientsTable() {
                   step="any"
                 />
               </div>
-  
+
               <div>
                 <label className="block font-semibold mb-1">Wasted:</label>
                 <input
@@ -1314,7 +1368,7 @@ export default function IngredientsTable() {
                   step="any"
                 />
               </div>
-  
+
               {/* Dropdown untuk Ingredient Type */}
               <div>
                 <label className="block font-semibold mb-1">Ingredient Type:</label>
@@ -1325,7 +1379,7 @@ export default function IngredientsTable() {
                   required
                 >
                   <option value="RAW">RAW</option>
-                  
+
                 </select>
               </div>
               <div className="mt-4 flex justify-end space-x-4">

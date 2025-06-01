@@ -35,6 +35,7 @@ interface SelectedDetail {
     netSales: number;
     totalHPP: number;
     grossMargin: number;
+    totalCashierDiscount: number;
   };
   details: MenuDetail[];
 }
@@ -65,54 +66,57 @@ export default function GrossMarginChart() {
   const [selectedDetail, setSelectedDetail] = useState<SelectedDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  useEffect(() => {
-    async function fetchGrossMarginData() {
-      try {
-        let url = "";
-        let params = new URLSearchParams();
-  
-        if (period === "custom") {
-          params.append("period", "daily");
-          params.append("start", startDate);
-          if (endDate) params.append("end", endDate);
-        } else {
-          params.append("period", period);
-          params.append("date", startDate);
-        }
-  
-        url = `/api/grossMarginData?${params.toString()}`;
-  
-        const res = await fetch(url);
-        const data = await res.json();
-  
-        console.log("Gross Margin Data:", data);
-  
-        if (Array.isArray(data)) {
-          if (period === "custom" && startDate && endDate) {
-            const fullDates = generateDateRange(startDate, endDate);
-            const mappedData = fullDates.map((date) => {
-              const found = data.find((d) => d.date === date);
-              return {
-                date,
-                grossMargin: found?.grossMargin ?? 0,
-              };
-            });
-  
-            console.log("Mapped Custom Gross Margin Data:", mappedData);
-            setGrossMarginData(mappedData);
-          } else {
-            setGrossMarginData(data);
-          }
-        } else {
-          console.error("Data is not in array format");
-        }
-      } catch (error) {
-        console.error("Error fetching gross margin data:", error);
+useEffect(() => {
+  async function fetchGrossMarginData() {
+    try {
+      let url = "";
+      let params = new URLSearchParams();
+
+      if (period === "custom") {
+        params.append("period", "daily");
+        params.append("start", startDate);
+        if (endDate) params.append("end", endDate);
+      } else {
+        params.append("period", period);
+        params.append("date", startDate);
       }
+
+      url = `/api/grossMarginData?${params.toString()}`;
+
+      const res = await fetch(url);
+      const result = await res.json();
+
+      const data = Array.isArray(result) ? result : result.data;
+
+      console.log("Gross Margin Data:", data);
+
+      if (Array.isArray(data)) {
+        if (period === "custom" && startDate && endDate) {
+          const fullDates = generateDateRange(startDate, endDate);
+          const mappedData = fullDates.map((date) => {
+            const found = data.find((d) => d.date === date);
+            return {
+              date,
+              grossMargin: found?.grossMargin ?? 0,
+            };
+          });
+
+          console.log("Mapped Custom Gross Margin Data:", mappedData);
+          setGrossMarginData(mappedData);
+        } else {
+          setGrossMarginData(data);
+        }
+      // } else {
+      //   console.error("Data is not in array format");
+      }
+    } catch (error) {
+      console.error("Error fetching gross margin data:", error);
     }
-  
-    fetchGrossMarginData();
-  }, [period, startDate, endDate]);
+  }
+
+  fetchGrossMarginData();
+}, [period, startDate, endDate]);
+
   
 
   const formatDate = (dateString: string): string => {
@@ -280,6 +284,10 @@ export default function GrossMarginChart() {
                   <p>
                     <strong>Total HPP:</strong> Rp{" "}
                     {Number(selectedDetail.summary.totalHPP).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Total Diskon Kasir:</strong> Rp{" "}
+                    {Number(selectedDetail.summary.totalCashierDiscount).toLocaleString()}
                   </p>
                   <p>
                     <strong>Gross Margin:</strong>{" "}

@@ -1,20 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { RowDataPacket } from 'mysql2';
 
 // Interface untuk respons API
 interface ModifierSalesResponse {
-    modifierName: string;
-    quantity: number;
-    totalSales: number;
-    hpp: number;
-    grossSales: number;
-  }
-  
+  modifierId: number;
+  modifierName: string;
+  categoryName: string;
+  quantity: number;     // Total unit modifier ini terjual
+  totalSales: number;   // Total pendapatan dari modifier ini (Harga Jual * Kuantitas)
+  totalHpp: number;     // Total HPP untuk modifier ini (HPP Satuan * Kuantitas)
+  grossProfit: number;  // totalSales - totalHpp
+}
 
 function getStartAndEndDates(period: string, dateString: string): { startDate: Date; endDate: Date } {
-    const date = new Date(dateString);
-    let startDate: Date;
-    let endDate: Date;
+  const date = new Date(dateString);
+  let startDate: Date;
+  let endDate: Date;
 
   switch (period.toLowerCase()) {
     case "daily":
@@ -22,13 +24,15 @@ function getStartAndEndDates(period: string, dateString: string): { startDate: D
       endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 1);
       break;
-    case "weekly":
-      const day = date.getDay();
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-      startDate = new Date(date.setDate(diff));
+    case "weekly": {
+      const day = date.getDay(); // 0 (Minggu) - 6 (Sabtu)
+      // Set ke Senin minggu ini
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
+      startDate = new Date(date.getFullYear(), date.getMonth(), diff); // Versi aman
       endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 7);
       break;
+    }
     case "monthly":
       startDate = new Date(date.getFullYear(), date.getMonth(), 1);
       endDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
@@ -63,55 +67,79 @@ export async function GET(req: NextRequest) {
       ({ startDate, endDate } = getStartAndEndDates(period, dateStr));
     }
 
-   
-    const [completedOrders]:any = await db.execute(
-      `SELECT co.id AS orderId, oi.quantity, m.id AS modifierId, m.name AS modifierName, 
-              m.price AS modifierPrice, ing.price AS ingredientPrice, mi.amount AS ingredientAmount
-       FROM completedOrder co
-       JOIN completedOrderItem oi ON co.id = oi.orderId
-       JOIN completedOrderItemModifier om ON oi.id = om.completedOrderItemId
-       JOIN modifier m ON om.modifierId = m.id
-       LEFT JOIN modifierIngredient mi ON m.id = mi.modifierId
-       LEFT JOIN ingredient ing ON mi.ingredientId = ing.id
-       WHERE co.createdAt >= ? AND co.createdAt < ?`, 
+    const [rows] = await db.execute<RowDataPacket[]>(
+      `
+      WITH ModifierHPPUnit AS (
+        SELECT
+          md.id as modifierId,
+          SUM(COALESCE(ing.price, 0) * COALESCE(mi.amount, 0)) as unitHpp
+        FROM modifier md
+        LEFT JOIN modifierIngredient mi ON md.id = mi.modifierId
+        LEFT JOIN ingredient ing ON mi.ingredientId = ing.id
+        GROUP BY md.id
+      )
+      SELECT 
+        md.id AS modifierId,
+        md.name AS modifierName,
+        mc.name AS categoryName,
+        oi.quantity AS parentItemQuantity, 
+        md.price AS modifierUnitPrice,
+        mh.unitHpp AS modifierUnitHpp
+      FROM completedOrder co
+      JOIN completedOrderItem oi ON co.id = oi.orderId
+      JOIN completedOrderItemModifier coim ON oi.id = coim.completedOrderItemId
+      JOIN modifier md ON coim.modifierId = md.id
+      JOIN modifierCategory mc ON md.categoryId = mc.id
+      LEFT JOIN ModifierHPPUnit mh ON md.id = mh.modifierId
+      WHERE co.createdAt >= ? AND co.createdAt < ?
+      `, 
       [startDate, endDate]
     );
 
+    const aggregatedData: Record<number, {
+      modifierId: number;
+      modifierName: string;
+      categoryName: string;
+      quantity: number;
+      totalSales: number;
+      totalHpp: number;
+    }> = {};
 
-    // Agregasi data per modifier
-    const aggregatedData: Record<number, ModifierSalesResponse> = {};
-
-    for (const row of completedOrders) {
-      const { modifierId, modifierName, quantity, modifierPrice, ingredientPrice, ingredientAmount } = row;
+    for (const row of rows) {
+      const modifierId = Number(row.modifierId);
+      const modifierName = String(row.modifierName);
+      const categoryName = String(row.categoryName);
+      const parentItemQuantity = Number(row.parentItemQuantity);
+      const modifierUnitPrice = Number(row.modifierUnitPrice || 0);
+      const modifierUnitHpp = Number(row.modifierUnitHpp || 0);
       
       if (!aggregatedData[modifierId]) {
         aggregatedData[modifierId] = {
+          modifierId,
           modifierName,
+          categoryName,
           quantity: 0,
           totalSales: 0,
-          hpp: 0,
-          grossSales: 0,
+          totalHpp: 0,
         };
       }
 
-      const totalSales = modifierPrice * quantity;
-      const hpp = (ingredientPrice || 0) * (ingredientAmount || 0) * quantity;
-
-      aggregatedData[modifierId].quantity += quantity;
-      aggregatedData[modifierId].totalSales += totalSales;
-      aggregatedData[modifierId].hpp += hpp;
-      aggregatedData[modifierId].grossSales += totalSales - hpp;
+      aggregatedData[modifierId].quantity += parentItemQuantity;
+      aggregatedData[modifierId].totalSales += modifierUnitPrice * parentItemQuantity;
+      aggregatedData[modifierId].totalHpp += modifierUnitHpp * parentItemQuantity;
     }
 
-    const result = Object.values(aggregatedData).sort((a, b) => b.totalSales - a.totalSales);
+    const result: ModifierSalesResponse[] = Object.values(aggregatedData).map(item => ({
+      ...item,
+      grossProfit: item.totalSales - item.totalHpp,
+    })).sort((a, b) => b.totalSales - a.totalSales); // Urutkan berdasarkan total penjualan
+
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error in GET /api/modifier-sales:", error);
+    const message = error instanceof Error ? error.message : "Unknown error occurred";
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Internal server error", message },
       { status: 500 }
     );
   }

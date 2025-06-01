@@ -43,6 +43,7 @@ export default function PredictionTable() {
                     <label className="block text-sm font-medium text-gray-700">Periode Review (hari)</label>
                     <input
                         type="number"
+                        placeholder='0'
                         value={period}
                         onChange={e => setPeriod(e.target.value)}
                         className="border border-gray-300 px-3 py-1.5 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-24"
@@ -53,6 +54,7 @@ export default function PredictionTable() {
                     <label className="block text-sm font-medium text-gray-700">Lead Time (hari)</label>
                     <input
                         type="number"
+                        placeholder='0'
                         value={leadTime}
                         onChange={e => setLeadTime(e.target.value)}
                         className="border border-gray-300 px-3 py-1.5 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-24"

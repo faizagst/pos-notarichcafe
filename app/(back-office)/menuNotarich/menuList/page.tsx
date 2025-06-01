@@ -123,7 +123,7 @@ export default function ManagerMenusPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: newStatus }),
       });
-  
+
       if (res.ok) {
         toast.success(`Menu berhasil ${newStatus ? "diaktifkan" : "dinonaktifkan"}`);
         fetchMenus(); // refresh data
@@ -135,7 +135,7 @@ export default function ManagerMenusPage() {
       toast.error("Terjadi kesalahan.");
     }
   };
-  
+
 
   return (
     <div className="p-10 mt-[65px]">
@@ -162,77 +162,77 @@ export default function ManagerMenusPage() {
         <p>Loading...</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 divide-y divide-gray-200">
+          <table className="min-w-full table-fixed border border-gray-300 divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Jual</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Bakul</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diskon</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingredients</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modifiers</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                <th className="w-10 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                <th className="w-20 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Gambar</th>
+                <th className="w-40 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                <th className="w-60 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                <th className="w-20 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                <th className="w-24 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="w-32 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                <th className="w-28 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Jual</th>
+                <th className="w-28 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Bakul</th>
+                <th className="w-32 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Diskon</th>
+                <th className="w-64 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ingredients</th>
+                <th className="w-64 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Modifiers</th>
+                <th className="w-52 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredMenus.map((menu, index) => (
                 <tr key={menu.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap">{index + 1}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">
                     {menu.image ? (
                       <img src={menu.image} alt={menu.name} className="w-16 h-16 object-cover rounded" />
-                    ) : (
-                      "No Image"
-                    )}
+                    ) : "No Image"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.maxBeli}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.Status}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.category}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.price}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{menu.hargaBakul}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap">{menu.name}</td>
+                  <td className="px-4 py-2 whitespace-normal break-words">{menu.description}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{menu.maxBeli}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{menu.Status}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{menu.category}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{menu.price}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{menu.hargaBakul}</td>
+                  <td className="px-4 py-2 whitespace-normal break-words">
                     {menu.discounts && menu.discounts.length > 0 ? (
                       menu.discounts.map((d, index) => (
                         <span key={d.discount.id}>
-                          {d.discount.name} ({d.discount.value}
-                          {d.discount.type === "PERCENTAGE" ? "%" : ""})
+                          {d.discount.name} ({d.discount.value}{d.discount.type === "PERCENTAGE" ? "%" : ""})
                           {index < menu.discounts.length - 1 && ", "}
                         </span>
                       ))
-                    ) : (
-                      "Tidak ada diskon"
-                    )}
+                    ) : "Tidak ada diskon"}
                   </td>
-                    <td className="px-6 py-4">
-                      {menu.ingredients.map((item) => {
-                        // Tentukan unit berdasarkan type bahan
+                  <td className="px-4 py-2 whitespace-normal break-words">
+                    <ul className="list-disc list-inside space-y-1">
+                      {menu.ingredients.map((item, index) => {
                         const displayUnit = item.ingredient.type === 'SEMI_FINISHED'
                           ? item.finishedUnit
                           : item.unit;
-                        return `${item.ingredient.name} (${item.amount} ${displayUnit})`;
-                      }).join(", ")}
-                    </td>
-                  <td className="px-6 py-4">
+                        return (
+                          <span key={index}>
+                            {item.ingredient.name} ({item.amount} {displayUnit}){index < menu.ingredients.length - 1 && ", "} 
+                          </span>
+                        );
+                      })}
+                    </ul>
+                  </td>
+                  <td className="px-4 py-2 whitespace-normal break-words">
                     {menu.modifiers && menu.modifiers.length > 0 ? (
-                      menu.modifiers.map((mod, index) => (
-                        <span key={mod.modifier.id}>
+                      <ul className="list-disc list-inside space-y-1">
+                        {menu.modifiers.map((mod, index) => (
+                           <span key={mod.modifier.id}>
                           {mod.modifier.name}
                           {index < menu.modifiers.length - 1 && ", "}
                         </span>
-                      ))
-                    ) : (
-                      "Tidak ada modifier"
-                    )}
+                        ))}
+                      </ul>
+                    ) : "Tidak ada modifier"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     <button
                       onClick={() => handleEdit(menu.id)}
                       className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded mr-2 mb-2"
@@ -247,7 +247,9 @@ export default function ManagerMenusPage() {
                     </button>
                     <button
                       onClick={() => handleToggleActive(menu.id, !menu.isActive)}
-                      className={`px-3 py-1 rounded font-semibold ${menu.isActive ? "bg-green-500 text-white hover:bg-green-600" : "bg-gray-400 text-white hover:bg-gray-500"
+                      className={`px-3 py-1 rounded font-semibold ${menu.isActive
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "bg-gray-400 text-white hover:bg-gray-500"
                         }`}
                     >
                       {menu.isActive ? "Aktif" : "Nonaktif"}
@@ -257,7 +259,7 @@ export default function ManagerMenusPage() {
               ))}
               {filteredMenus.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-6 py-4 text-center">
+                  <td colSpan={13} className="px-4 py-4 text-center">
                     Tidak ada data menu.
                   </td>
                 </tr>
@@ -265,6 +267,7 @@ export default function ManagerMenusPage() {
             </tbody>
           </table>
         </div>
+
       )}
 
       {showAddModal && (
@@ -554,7 +557,7 @@ export function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: Ed
               <label className="block font-semibold mb-2">Price:</label>
               <input
                 type="number"
-                min= "0"
+                min="0"
                 placeholder="0"
                 value={price || ""}
                 onChange={(e) => setPrice(e.target.value)}

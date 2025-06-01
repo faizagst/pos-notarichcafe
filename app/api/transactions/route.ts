@@ -70,10 +70,10 @@ export async function GET(req: NextRequest) {
       md.name AS modifierName,
       md.price AS modifierPrice
 
-    FROM completedorder o
-    LEFT JOIN completedorderitem i ON i.orderId = o.id
+    FROM completedOrder o
+    LEFT JOIN completedOrderItem i ON i.orderId = o.id
     LEFT JOIN menu m ON i.menuId = m.id
-    LEFT JOIN completedorderitemmodifier im ON im.completedOrderItemId = i.id
+    LEFT JOIN completedOrderItemModifier im ON im.completedOrderItemId = i.id
     LEFT JOIN modifier md ON im.modifierId = md.id
     WHERE o.createdAt >= ? AND o.createdAt < ?
     ORDER BY o.createdAt ASC

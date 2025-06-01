@@ -10,9 +10,6 @@ interface AppliedModifierInfo {
     quantity: number; // Kuantitas item menu induk
     unitPrice: number; // Harga satuan master modifier
     unitHpp: number;   // HPP satuan master modifier
-    // Opsional: jika ingin menampilkan diskon/net sales teralokasi per modifier
-    // allocatedDiscountValue?: number;
-    // netSalesContribution?: number;
 }
 
 interface OrderItemDetail {

@@ -3,7 +3,6 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { FcGoogle } from "react-icons/fc";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function RegisterPage() {

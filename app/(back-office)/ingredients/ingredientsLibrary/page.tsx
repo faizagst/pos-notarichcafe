@@ -741,12 +741,12 @@ export default function IngredientsTable() {
                   onChange={(e) => {
                     const inputVal = e.target.value;
                     setAdditionalStock(inputVal);
-                    // if (selectedIngredient) {
-                    //   setSelectedIngredient({
-                    //     ...selectedIngredient,
-                    //     stockIn: selectedIngredient.originalStockIn + (parseFloat(inputVal) || 0),
-                    //   });
-                    // }
+                    if (selectedIngredient) {
+                      setSelectedIngredient({
+                        ...selectedIngredient,
+                        stockIn: selectedIngredient.originalStockIn + (parseFloat(inputVal) || 0),
+                      });
+                    }
                   }}
                   onKeyDown={handleNumberKeyDown}
                   className="w-full p-2 border border-gray-300 rounded"

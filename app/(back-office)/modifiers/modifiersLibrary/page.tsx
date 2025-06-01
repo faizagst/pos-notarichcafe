@@ -273,7 +273,7 @@ export default function ModifierPage() {
                   type="number"
                   name="price"
                   placeholder="0"
-                  value={formData.price || ""}
+                  value={formData.price || "0"}
                   onChange={handleInputChange}
                   required
                   min="0"

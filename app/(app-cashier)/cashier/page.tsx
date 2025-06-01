@@ -1370,7 +1370,7 @@ export default function KasirPage() {
           </div>
         )}
 
-        {notificationModalOpen && (
+        {/* {notificationModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
             <div className="bg-[#FCFFFC] p-6 rounded shadow-md w-full max-w-md max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
@@ -1409,7 +1409,7 @@ export default function KasirPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {isModifierPopupOpen && currentMenu && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1897,14 +1897,12 @@ function OrderItemComponent({
       <div className="mt-2 text-gray-700">
         <p>Subtotal: <span className="font-semibold">Rp {totals.subtotal.toLocaleString()}</span></p>
         <p>Modifier: <span className="font-semibold">Rp {totals.totalModifierCost.toLocaleString()}</span></p>
-        <p>Diskon: <span className="font-semibold">Rp {localDiscountAmount.toLocaleString()}</span></p>
-        <p>Pajak: <span className="font-semibold">Rp {localTaxAmount.toLocaleString()}</span></p>
-        <p>Gratuity: <span className="font-semibold">Rp {localGratuityAmount.toLocaleString()}</span></p>
-        {order.roundingAmount && (
-          <p>Rounding: <span className="font-semibold">Rp {order.roundingAmount.toLocaleString()}</span></p>
-        )}
+        <p>Diskon: <span className="font-semibold">Rp {order.discountAmount.toLocaleString()}</span></p>
+        <p>Pajak: <span className="font-semibold">Rp {order.taxAmount.toLocaleString()}</span></p>
+        <p>Gratuity: <span className="font-semibold">Rp {order.gratuityAmount.toLocaleString()}</span></p>
+        <p>Rounding: <span className="font-semibold">Rp {order.roundingAmount.toLocaleString()}</span></p>
         <p className="font-semibold">
-          Total Bayar: Rp {localFinalTotal.toLocaleString()}
+          Total Bayar: Rp {order.finalTotal.toLocaleString()}
         </p>
       </div>
       <ul className="mt-3 space-y-1">
@@ -1930,7 +1928,8 @@ function OrderItemComponent({
           </li>
         ))}
       </ul>
-
+      
+      {/* hasil pembayaran ewallet */}
       {isPaidOrder && order.status !== "Sedang Diproses" && order.status !== "Selesai" && (
         <div className="mt-4 space-y-2">
           {/* Tampilkan status pembayaran */}
@@ -2096,7 +2095,7 @@ function OrderItemComponent({
         </div>
       )}
 
-      {onSelectOrder && (order.status === "pending" || order.status === "paid") && (
+      {/* {onSelectOrder && (order.status === "pending" || order.status === "paid") && (
         <div className="mt-2">
           <input
             type="checkbox"
@@ -2106,7 +2105,7 @@ function OrderItemComponent({
           />
           <span className="text-sm">Pilih untuk merge</span>
         </div>
-      )}
+      )} */}
       {confirmation && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -2544,7 +2543,7 @@ function generatePDF(order: Order) {
   checkPage();
   doc.text("Uang Diberikan", labelX, yPosition);
   doc.text(":", colonX, yPosition);
-  doc.text(`Rp ${order.cashGiven?.toLocaleString() || "0"}`, valueX, yPosition);
+  doc.text(`Rp ${order.cashGiven?.toLocaleString() || order.finalTotal.toLocaleString()}`, valueX, yPosition);
   yPosition += 5;
 
   checkPage();

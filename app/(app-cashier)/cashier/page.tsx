@@ -2261,14 +2261,14 @@ function isBarItem(item: OrderItem): boolean {
   const category = item.menu.category.toLowerCase();
   if (category === "bundle") {
     const hasBar = item.menu.bundleCompositions.some((bundleItem) =>
-      ["coffee", "tea", "frappe", "juice", "milk base", "refresher", "cocorich", "mocktail", "minuman"].includes(
+      ["coffee", "tea", "frappe", "juice", "milk based", "refresher", "cocorich", "mocktail", "minuman"].includes(
         bundleItem.menu.category.toLowerCase()
       )
     );
     console.log(`Bundle ${item.menu.name} has Bar items: ${hasBar}`);
     return hasBar;
   }
-  return ["coffee", "tea", "frappe", "juice", "milk base", "refresher", "cocorich", "mocktail", "minuman"].includes(category);
+  return ["coffee", "tea", "frappe", "juice", "milk based", "refresher", "cocorich", "mocktail", "minuman"].includes(category);
 }
 function printKitchenAndBarOrders(order: Order) {
   const kitchenItems = order.orderItems.filter(isKitchenItem);

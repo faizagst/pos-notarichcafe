@@ -1,8 +1,9 @@
 import db from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const menuId = Number(params.id);
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const menuId = Number(id);
   if (isNaN(menuId)) {
     return NextResponse.json({ message: "ID tidak valid" }, { status: 400 });
   }

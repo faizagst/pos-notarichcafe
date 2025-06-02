@@ -2,11 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    const menuId = Number(params.id);
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+     const { id } = await context.params;
+    const menuId = Number(id);
     if (isNaN(menuId)) {
         return NextResponse.json({ message: "ID tidak valid" }, { status: 400 });
     }
@@ -57,11 +55,9 @@ export async function GET(
     }
 }
 
-export async function DELETE(
-    req: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    const menuId = Number(params.id);
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+    const menuId = Number(id);
     if (isNaN(menuId)) {
         return NextResponse.json({ message: "ID tidak valid" }, { status: 400 });
     }

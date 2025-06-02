@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/lib/db"; // Koneksi mysql2
+import db from "@/lib/db";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 export async function POST(req: NextRequest) {
-  if (req.method !== "POST") {
-    return NextResponse.json({ message: "Method not allowed" }, { status: 405 });
-  }
-
   try {
     const { orderId, paymentMethod, paymentStatus, paymentId, status } = await req.json();
 
@@ -15,10 +12,10 @@ export async function POST(req: NextRequest) {
 
     const conn = await db.getConnection();
     try {
-      const [updatedOrderRows] = await conn.query(
-        `UPDATE \`order\` 
-        SET paymentMethod = ?, paymentStatus = ?, paymentId = ?, status = ? 
-        WHERE id = ?`,
+      const [updatedOrderRows] = await conn.query<ResultSetHeader>(
+        `UPDATE \`order\`
+         SET paymentMethod = ?, paymentStatus = ?, paymentId = ?, status = ?
+         WHERE id = ?`,
         [paymentMethod, paymentStatus, paymentId, status || "pending", orderId]
       );
 
@@ -26,12 +23,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: "Order not found" }, { status: 404 });
       }
 
-      const [updatedOrder] = await conn.query(
+      const [updatedOrder] = await conn.query<RowDataPacket[]>(
         `SELECT * FROM \`order\` WHERE id = ?`,
         [orderId]
       );
 
-      const [orderItems] = await conn.query(
+      const [orderItems] = await conn.query<RowDataPacket[]>(
         `SELECT oi.*, m.*, GROUP_CONCAT(DISTINCT mod.name) AS modifiers 
          FROM order_item oi
          LEFT JOIN menu m ON oi.menuId = m.id
@@ -42,7 +39,7 @@ export async function POST(req: NextRequest) {
         [orderId]
       );
 
-      const [discount] = await conn.query(
+      const [discount] = await conn.query<RowDataPacket[]>(
         `SELECT * FROM discount WHERE id = ?`,
         [updatedOrder[0].discountId]
       );
@@ -53,15 +50,10 @@ export async function POST(req: NextRequest) {
         discount: discount[0] || null,
       };
 
-      // Emit event WebSocket
-      if (req.socket && (req.socket as any).server) {
-        const io = (req.socket as any).server.io;
-        if (io) {
-          io.emit("paymentStatusUpdated", result);
-          console.log("Status pembayaran dikirim ke kasir melalui WebSocket:", result);
-        } else {
-          console.error("WebSocket server belum diinisialisasi");
-        }
+      // ✅ Emit WebSocket ke semua client (gunakan global)
+      const io = (global as any).io;
+      if (io) {
+        io.emit("paymentStatusUpdated", result);
       }
 
       return NextResponse.json({ success: true, order: result });

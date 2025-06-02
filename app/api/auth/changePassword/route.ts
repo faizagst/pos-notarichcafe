@@ -1,15 +1,19 @@
-// app/api/auth/changePassword/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import * as argon2 from 'argon2';
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = req.cookies;
+    // Ambil semua cookie dan cari token pertama yang valid
+    let token: string | null = null;
 
-    const token =
-      decodeURIComponent(cookieStore.get('owner')?.value || '') ||
-      decodeURIComponent(cookieStore.get('employee')?.value || '');
+    for (const [name, cookie] of req.cookies) {
+      const val = decodeURIComponent(cookie.value);
+      if (val && val.length > 20) { // bisa sesuaikan syarat panjang token
+        token = val;
+        break;
+      }
+    }
 
     if (!token) {
       return NextResponse.json({ message: 'Unauthorized, token not found' }, { status: 401 });

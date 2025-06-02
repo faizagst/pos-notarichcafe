@@ -36,6 +36,14 @@ function getStartOfISOWeek(isoWeek: string): Date {
   }
   return ISOweekStart;
 }
+function setStartOfDay(date: Date): Date {
+  return new Date(date.setHours(0, 0, 0, 0));
+}
+
+function setEndOfDay(date: Date): Date {
+  return new Date(date.setHours(23, 59, 59, 999));
+}
+
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -50,29 +58,29 @@ export async function GET(req: NextRequest) {
   let endDate: Date;
 
   // Date range logic (remains unchanged)
-  if (period === "daily") {
-    startDate = new Date(date);
-    endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 1);
-  } else if (period === "weekly") {
-    startDate = getStartOfISOWeek(date);
-    endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 7);
-  } else if (period === "monthly") {
-    const [year, month] = date.split("-");
-    startDate = new Date(Number(year), Number(month) - 1, 1);
-    endDate = new Date(Number(year), Number(month), 0); // Last day of the month
-    endDate.setDate(endDate.getDate() + 1); // Start of next day for < comparison
-  } else if (period === "yearly") {
-    const year = Number(date);
-    startDate = new Date(year, 0, 1);
-    endDate = new Date(year + 1, 0, 1);
-  } else {
-    // Default to daily if period is not recognized or missing
-    startDate = new Date(date);
-    endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 1);
-  }
+ if (period === "daily") {
+  startDate = setStartOfDay(new Date(date));
+  endDate = setEndOfDay(new Date(date));
+} else if (period === "weekly") {
+  startDate = setStartOfDay(getStartOfISOWeek(date));
+  endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 6);
+  endDate = setEndOfDay(endDate);
+} else if (period === "monthly") {
+  const [year, month] = date.split("-");
+  startDate = setStartOfDay(new Date(Number(year), Number(month) - 1, 1));
+  endDate = new Date(Number(year), Number(month), 0); // Last day of month
+  endDate = setEndOfDay(endDate);
+} else if (period === "yearly") {
+  const year = Number(date);
+  startDate = setStartOfDay(new Date(year, 0, 1));
+  endDate = setEndOfDay(new Date(year, 11, 31));
+} else {
+  // Default to daily
+  startDate = setStartOfDay(new Date(date));
+  endDate = setEndOfDay(new Date(date));
+}
+
 
   try {
     // 1. Calculate Net Sales from CompletedOrder for Summary

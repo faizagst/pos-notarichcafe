@@ -79,8 +79,6 @@ export async function GET(req: NextRequest) {
     endDate.setDate(endDate.getDate() + 1);
   }
 
-  endDate.setHours(0, 0, 0, 0);
-
   try {
     const [orderItemsData] = await db.query<any[]>(`
       SELECT 
@@ -97,8 +95,8 @@ export async function GET(req: NextRequest) {
           WHERE coim.completedOrderItemId = oi.id
         ) AS modifierNames
       FROM completedOrder co
-      JOIN completedOrderItem oi ON oi.orderId = co.id
-      JOIN menu m ON m.id = oi.menuId
+      LEFT JOIN completedOrderItem oi ON oi.orderId = co.id
+      LEFT JOIN menu m ON m.id = oi.menuId
       WHERE co.createdAt >= ? AND co.createdAt < ? 
       ORDER BY co.id ASC, oi.id ASC
     `, [startDate, endDate]);

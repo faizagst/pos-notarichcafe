@@ -1,4 +1,3 @@
-// app/api/item-sales/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { RowDataPacket } from "mysql2";
@@ -26,15 +25,10 @@ interface ItemSalesResponse {
 interface ProcessedModifierLineData {
   modifierId: number;
   modifierName: string;
-  // Base values from current master data, for one unit of parent item
-  baseUnitPrice: number; 
+  baseUnitPrice: number;
   baseHpp: number;
-  // Calculated values for total quantity of parent item
-  grossValueContribution: number; // (baseUnitPrice * quantity_parent_item)
-  allocatedItemSpecificDiscount: number;
-  valueAfterItemSpecificDiscount: number;
-  totalHpp: number; // (baseHpp * quantity_parent_item)
-  proRatedTrueOrderLevelDiscount: number;
+  grossValueContribution: number;
+  totalHpp: number;
 }
 
 interface ProcessedOrderItemData {
@@ -45,21 +39,17 @@ interface ProcessedOrderItemData {
   menuCategory: string;
   quantity: number;
 
-  // Kontribusi dari bagian menu utama saja
   menuPartBaseUnitPrice: number;
-  menuPartBaseHpp: number; 
-  menuPartGrossValue: number; // (menuPartBaseUnitPrice * quantity)
-  menuPartAllocatedItemSpecificDiscount: number; // Portion of coi.discountAmount for the menu part
-  menuPartValueAfterItemSpecificDiscount: number;
-  menuPartTotalHpp: number; // (menuPartBaseHpp * quantity)
-  proRatedTrueOrderLevelDiscountOnMenuPart: number;
+  menuPartBaseHpp: number;
+  menuPartGrossValue: number;
+  menuPartTotalHpp: number;
 
   modifiers: ProcessedModifierLineData[];
 
-  // Value of the entire line (menu + modifiers) AFTER item-specific discount, used for order-level discount distribution
-  totalNetLineValueAfterItemSpecificDiscount: number;
+  lineGrossValue: number;
+  lineNetSales: number;
+  menuAllocatedDiscount: number;
 }
-
 
 function getStartAndEndDates(period: string, dateString?: string): { startDate: Date; endDate: Date } {
   const date = dateString ? new Date(dateString) : new Date();
@@ -126,10 +116,10 @@ export async function GET(req: NextRequest) {
       )
       SELECT 
           co.id AS orderId,
-          co.discountAmount AS orderGrandTotalDiscountAmount,
+          co.total AS orderFinalPrice,        
+          co.discountAmount AS orderTotalDiscount, 
           coi.id AS orderItemId,
           coi.quantity AS itemQuantity,
-          coi.discountAmount AS itemSpecificTotalDiscountOnLine, 
           coi.price AS itemUnitPriceGrossCombined, 
           m.id AS menuId,
           m.name AS menuName,
@@ -152,39 +142,51 @@ export async function GET(req: NextRequest) {
       [startDate, endDate]
     );
 
-    const itemDetailsMap = new Map<number, ProcessedOrderItemData>();
-    const orderGrandTotalDiscounts = new Map<number, number>(); 
-    const orderSumOfItemSpecificDiscountsOnLine = new Map<number, number>();
+    const orderAggregates = new Map<number, {
+      orderFinalPrice: number;
+      orderTotalDiscount: number;
+      orderNetSales: number;
+      orderGrossValueFromItems: number;
+    }>();
 
-    const processedCoiForSumDiscount = new Set<number>(); 
+    const processedOrderIdsForAggregates = new Set<number>();
+    const processedOrderItemIdsForGrossValue = new Set<number>();
+
     for (const row of orderRows) {
-        const orderId = Number(row.orderId);
-        const orderItemId = Number(row.orderItemId);
-        
-        orderGrandTotalDiscounts.set(orderId, Number(row.orderGrandTotalDiscountAmount || 0));
+      const orderId = Number(row.orderId);
 
-        if (!processedCoiForSumDiscount.has(orderItemId)) {
-            const itemSpecificTotalDiscount = Number(row.itemSpecificTotalDiscountOnLine || 0);
-            const currentSum = orderSumOfItemSpecificDiscountsOnLine.get(orderId) || 0;
-            orderSumOfItemSpecificDiscountsOnLine.set(orderId, currentSum + itemSpecificTotalDiscount);
-            processedCoiForSumDiscount.add(orderItemId);
-        }
+      if (!processedOrderIdsForAggregates.has(orderId)) {
+        const finalPrice = Number(row.orderFinalPrice || 0);
+        const totalDiscount = Number(row.orderTotalDiscount || 0);
+        orderAggregates.set(orderId, {
+          orderFinalPrice: finalPrice,
+          orderTotalDiscount: totalDiscount,
+          orderNetSales: finalPrice - totalDiscount,
+          orderGrossValueFromItems: 0,
+        });
+        processedOrderIdsForAggregates.add(orderId);
+      }
+
+      const orderItemId = Number(row.orderItemId);
+      if(!processedOrderItemIdsForGrossValue.has(orderItemId)) {
+        const orderData = orderAggregates.get(orderId)!;
+        orderData.orderGrossValueFromItems += Number(row.itemUnitPriceGrossCombined || 0) * Number(row.itemQuantity || 0);
+        processedOrderItemIdsForGrossValue.add(orderItemId);
+      }
     }
     
-    const orderTrueOrderLevelOnlyDiscounts = new Map<number,number>();
-    orderGrandTotalDiscounts.forEach((grandTotalDiscount, orderId) => {
-        const sumItemLineDiscounts = orderSumOfItemSpecificDiscountsOnLine.get(orderId) || 0;
-        orderTrueOrderLevelOnlyDiscounts.set(orderId, Math.max(0, grandTotalDiscount - sumItemLineDiscounts));
-    });
+    const itemDetailsMap = new Map<number, ProcessedOrderItemData>();
 
     for (const row of orderRows) {
       const orderId = Number(row.orderId);
       const orderItemId = Number(row.orderItemId);
       const quantity = Number(row.itemQuantity);
-      const coiPriceUnitGrossCombined = Number(row.itemUnitPriceGrossCombined); 
-      const coiTotalItemSpecificDiscountOnLine = Number(row.itemSpecificTotalDiscountOnLine); 
+      const itemUnitPriceGrossCombined = Number(row.itemUnitPriceGrossCombined || 0);
 
       if (!itemDetailsMap.has(orderItemId)) {
+        const menuMasterUnitPrice = Number(row.menuMasterUnitPrice || 0);
+        const menuMasterHpp = Number(row.menuMasterHpp || 0);
+        
         itemDetailsMap.set(orderItemId, {
           orderId,
           orderItemId,
@@ -192,15 +194,14 @@ export async function GET(req: NextRequest) {
           menuName: String(row.menuName),
           menuCategory: String(row.menuCategory),
           quantity,
-          menuPartBaseUnitPrice: Number(row.menuMasterUnitPrice || 0),
-          menuPartBaseHpp: Number(row.menuMasterHpp || 0),
-          menuPartGrossValue: Number(row.menuMasterUnitPrice || 0) * quantity,
-          menuPartTotalHpp: Number(row.menuMasterHpp || 0) * quantity,
-          menuPartAllocatedItemSpecificDiscount: 0, // Initialized, calculated in Pass 1.5
-          menuPartValueAfterItemSpecificDiscount: 0, // Initialized, calculated in Pass 1.5
-          proRatedTrueOrderLevelDiscountOnMenuPart: 0,
+          menuPartBaseUnitPrice: menuMasterUnitPrice,
+          menuPartBaseHpp: menuMasterHpp,
+          menuPartGrossValue: menuMasterUnitPrice * quantity,
+          menuPartTotalHpp: menuMasterHpp * quantity,
           modifiers: [],
-          totalNetLineValueAfterItemSpecificDiscount: (coiPriceUnitGrossCombined * quantity) - coiTotalItemSpecificDiscountOnLine,
+          lineGrossValue: itemUnitPriceGrossCombined * quantity,
+          lineNetSales: 0,
+          menuAllocatedDiscount: 0,
         });
       }
 
@@ -216,68 +217,41 @@ export async function GET(req: NextRequest) {
           baseHpp: modifierMasterHpp,
           grossValueContribution: modifierMasterUnitPrice * quantity,
           totalHpp: modifierMasterHpp * quantity,
-          allocatedItemSpecificDiscount: 0,
-          valueAfterItemSpecificDiscount: 0, 
-          proRatedTrueOrderLevelDiscount: 0,
         });
       }
     }
-    
-    const orderSubTotalsForDiscountDistribution = new Map<number, number>();
 
     itemDetailsMap.forEach(item => {
-        let calculatedSumOfGrossParts = item.menuPartGrossValue;
-        item.modifiers.forEach(mod => calculatedSumOfGrossParts += mod.grossValueContribution);
-        
-        const originalRowForOrderItem = orderRows.find(r => Number(r.orderItemId) === item.orderItemId);
-        const coiTotalItemSpecificDiscountOnLine = originalRowForOrderItem ? Number(originalRowForOrderItem.itemSpecificTotalDiscountOnLine || 0) : 0;
+      const orderData = orderAggregates.get(item.orderId);
+      
+      if (!orderData) {
+        console.warn(`Order data not found for orderId: ${item.orderId}. Item ${item.orderItemId} will use gross values.`);
+        item.lineNetSales = item.lineGrossValue;
+        item.menuAllocatedDiscount = 0;
+        return;
+      }
 
-        if (calculatedSumOfGrossParts > 0) {
-            item.menuPartAllocatedItemSpecificDiscount = (item.menuPartGrossValue / calculatedSumOfGrossParts) * coiTotalItemSpecificDiscountOnLine;
-            item.modifiers.forEach(mod => {
-                mod.allocatedItemSpecificDiscount = (mod.grossValueContribution / calculatedSumOfGrossParts) * coiTotalItemSpecificDiscountOnLine;
-            });
-        } else { 
-            item.menuPartAllocatedItemSpecificDiscount = 0;
-            item.modifiers.forEach(mod => mod.allocatedItemSpecificDiscount = 0);
-        }
-
-        item.menuPartValueAfterItemSpecificDiscount = item.menuPartGrossValue - item.menuPartAllocatedItemSpecificDiscount;
-        item.modifiers.forEach(mod => {
-            mod.valueAfterItemSpecificDiscount = mod.grossValueContribution - mod.allocatedItemSpecificDiscount;
-        });
-        
-        const currentOrderSubTotal = orderSubTotalsForDiscountDistribution.get(item.orderId) || 0;
-        orderSubTotalsForDiscountDistribution.set(item.orderId, currentOrderSubTotal + item.totalNetLineValueAfterItemSpecificDiscount);
-    });
-    
-    itemDetailsMap.forEach(item => {
-      const trueOrderLevelDiscountForOrder = orderTrueOrderLevelOnlyDiscounts.get(item.orderId) || 0;
-      const orderSubTotalBasis = orderSubTotalsForDiscountDistribution.get(item.orderId) || 0; 
-
-      if (trueOrderLevelDiscountForOrder > 0 && orderSubTotalBasis > 0) {
-        if (item.totalNetLineValueAfterItemSpecificDiscount > 0) { 
-            const itemLineProportionOfOrder = item.totalNetLineValueAfterItemSpecificDiscount / orderSubTotalBasis;
-            const discountForThisEntireLine = itemLineProportionOfOrder * trueOrderLevelDiscountForOrder;
-
-            const internalBaseForDistribution = item.menuPartValueAfterItemSpecificDiscount + item.modifiers.reduce((sum, m) => sum + m.valueAfterItemSpecificDiscount, 0);
-            
-            if (internalBaseForDistribution > 0) {
-                const menuPartProportionInternal = item.menuPartValueAfterItemSpecificDiscount / internalBaseForDistribution;
-                const discountForMenuPart = menuPartProportionInternal * discountForThisEntireLine;
-                item.proRatedTrueOrderLevelDiscountOnMenuPart = Math.min(discountForMenuPart, item.menuPartValueAfterItemSpecificDiscount);
-
-                item.modifiers.forEach(modifier => {
-                    const modifierProportionInternal = modifier.valueAfterItemSpecificDiscount / internalBaseForDistribution;
-                    const discountForModifier = modifierProportionInternal * discountForThisEntireLine;
-                    modifier.proRatedTrueOrderLevelDiscount = Math.min(discountForModifier, modifier.valueAfterItemSpecificDiscount);
-                });
-            }
+      if (orderData.orderGrossValueFromItems > 0) {
+        const proportion = item.lineGrossValue / orderData.orderGrossValueFromItems;
+        item.lineNetSales = proportion * orderData.orderNetSales;
+        item.menuAllocatedDiscount = proportion * orderData.orderTotalDiscount;
+      } else {
+        if (item.lineGrossValue > 0) {
+           // Should not happen if item.lineGrossValue contributes to orderData.orderGrossValueFromItems
+           console.warn(`Item line ${item.orderItemId} has gross value but order sum is zero. Using item gross value.`);
+           item.lineNetSales = item.lineGrossValue;
+           item.menuAllocatedDiscount = 0;
+        } else {
+            // Item line and order sum are both zero gross. Net sales and discount are zero for the line.
+            // Any order-level net sales/discount is not attributable to this zero-value item.
+            item.lineNetSales = 0;
+            item.menuAllocatedDiscount = 0;
         }
       }
     });
 
     const finalReportMap = new Map<number, ItemSalesResponse>();
+
     itemDetailsMap.forEach(processedItem => {
       const menuId = processedItem.menuId;
       if (!finalReportMap.has(menuId)) {
@@ -293,49 +267,42 @@ export async function GET(req: NextRequest) {
         });
       }
       const reportItem = finalReportMap.get(menuId)!;
-      
+
       reportItem.quantity += processedItem.quantity;
-
-      const menuNetSales = processedItem.menuPartValueAfterItemSpecificDiscount - processedItem.proRatedTrueOrderLevelDiscountOnMenuPart;
-      reportItem.netSales += menuNetSales;
+      reportItem.netSales += processedItem.lineNetSales;
       reportItem.hpp += processedItem.menuPartTotalHpp;
-      reportItem.discount += processedItem.menuPartAllocatedItemSpecificDiscount + processedItem.proRatedTrueOrderLevelDiscountOnMenuPart;
+      reportItem.discount += processedItem.menuAllocatedDiscount;
 
-      const modifierAggregatorForReport = new Map<number, ModifierSaleDetail>();
+      const modifierAggregatorForReportLine = new Map<number, ModifierSaleDetail>();
 
       processedItem.modifiers.forEach(mod => {
-        const modNetSales = mod.valueAfterItemSpecificDiscount - mod.proRatedTrueOrderLevelDiscount;
-        reportItem.netSales += modNetSales;
         reportItem.hpp += mod.totalHpp;
-        reportItem.discount += mod.allocatedItemSpecificDiscount + mod.proRatedTrueOrderLevelDiscount;
 
-        if (!modifierAggregatorForReport.has(mod.modifierId)) {
-          modifierAggregatorForReport.set(mod.modifierId, {
+        if (!modifierAggregatorForReportLine.has(mod.modifierId)) {
+          modifierAggregatorForReportLine.set(mod.modifierId, {
             modifierId: mod.modifierId,
             modifierName: mod.modifierName,
             quantitySoldWithParentMenu: 0,
             netSalesFromThisModifier: 0,
             hppFromThisModifier: 0,
-            discountAllocatedToThisModifier: 0,
+            discountAllocatedToThisModifier: 0, 
           });
         }
-        const aggMod = modifierAggregatorForReport.get(mod.modifierId)!;
+        const aggMod = modifierAggregatorForReportLine.get(mod.modifierId)!;
         aggMod.quantitySoldWithParentMenu += processedItem.quantity;
-        aggMod.netSalesFromThisModifier += modNetSales;
+        aggMod.netSalesFromThisModifier += mod.grossValueContribution; 
         aggMod.hppFromThisModifier += mod.totalHpp;
-        aggMod.discountAllocatedToThisModifier += mod.allocatedItemSpecificDiscount + mod.proRatedTrueOrderLevelDiscount;
       });
-      
-      modifierAggregatorForReport.forEach(aggModDetail => {
-          let existingBreakdown = reportItem.modifiersBreakdown!.find(b => b.modifierId === aggModDetail.modifierId);
-          if (existingBreakdown) {
-              existingBreakdown.quantitySoldWithParentMenu += aggModDetail.quantitySoldWithParentMenu;
-              existingBreakdown.netSalesFromThisModifier += aggModDetail.netSalesFromThisModifier;
-              existingBreakdown.hppFromThisModifier += aggModDetail.hppFromThisModifier;
-              existingBreakdown.discountAllocatedToThisModifier += aggModDetail.discountAllocatedToThisModifier;
-          } else {
-              reportItem.modifiersBreakdown!.push(aggModDetail);
-          }
+
+      modifierAggregatorForReportLine.forEach(aggModDetail => {
+        let existingBreakdown = reportItem.modifiersBreakdown!.find(b => b.modifierId === aggModDetail.modifierId);
+        if (existingBreakdown) {
+          existingBreakdown.quantitySoldWithParentMenu += aggModDetail.quantitySoldWithParentMenu;
+          existingBreakdown.netSalesFromThisModifier += aggModDetail.netSalesFromThisModifier;
+          existingBreakdown.hppFromThisModifier += aggModDetail.hppFromThisModifier;
+        } else {
+          reportItem.modifiersBreakdown!.push(aggModDetail);
+        }
       });
     });
 

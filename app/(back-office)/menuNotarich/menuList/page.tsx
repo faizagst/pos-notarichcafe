@@ -336,7 +336,7 @@ interface EditMenuModalProps {
   onMenuUpdatedAction: () => void; // Ubah nama prop
 }
 
-export function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: EditMenuModalProps) {
+function EditMenuModal({ menuId, onCloseAction, onMenuUpdatedAction }: EditMenuModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -779,7 +779,7 @@ interface AddMenuModalProps {
   onMenuAddAction: () => void;
 }
 
-export function AddMenuModal({ onCloseAction, onMenuAddAction }: AddMenuModalProps) {
+function AddMenuModal({ onCloseAction, onMenuAddAction }: AddMenuModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");

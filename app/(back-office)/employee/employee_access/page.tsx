@@ -100,7 +100,7 @@ const DEFAULT_APP_PERMISSIONS: AppPermissions = {
   riwayat: false,
 };
 
-export const DEFAULT_BACKOFFICE_PERMISSIONS: BackofficePermissions = {
+const DEFAULT_BACKOFFICE_PERMISSIONS: BackofficePermissions = {
   viewDashboard: false,
 
   viewReportsParent: false,
@@ -162,7 +162,7 @@ function getMergedAppPermissions(p?: AppPermissions): AppPermissions {
   return { ...DEFAULT_APP_PERMISSIONS, ...p };
 }
 
-export function getMergedBackofficePermissions(p?: Partial<BackofficePermissions>): BackofficePermissions {
+function getMergedBackofficePermissions(p?: Partial<BackofficePermissions>): BackofficePermissions {
   return {
     ...DEFAULT_BACKOFFICE_PERMISSIONS,
     ...p,

@@ -1,60 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
-import { subDays, startOfWeek, startOfMonth, startOfYear, addDays, addWeeks, addMonths, addYears } from "date-fns";
-
-function getStartOfISOWeek(isoWeek: string): Date {
-  const [yearStr, weekStr] = isoWeek.split("-W");
-  const year = Number(yearStr);
-  const week = Number(weekStr);
-  const simple = new Date(year, 0, 1 + (week - 1) * 7);
-  const dow = simple.getDay();
-  const ISOweekStart = new Date(simple);
-  if (dow <= 4) {
-    ISOweekStart.setDate(simple.getDate() - dow + 1);
-  } else {
-    ISOweekStart.setDate(simple.getDate() + 8 - dow);
-  }
-  return ISOweekStart;
-}
+import {
+  parseISO,
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  startOfYear,
+  addDays,
+  addWeeks,
+  addMonths,
+  addYears,
+} from "date-fns";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const period = searchParams.get("period") || "daily";
-    const date = searchParams.get("date");
+    const dateStr = searchParams.get("date");
     const start = searchParams.get("start");
     const end = searchParams.get("end");
 
     let startDate: Date;
     let endDate: Date;
 
-    if (date) {
-      const dateStr = date as string;
-      if (period === "daily") {
-        startDate = new Date(dateStr);
-        endDate = addDays(startDate, 1);
-      } else if (period === "weekly") {
-        startDate = getStartOfISOWeek(dateStr);
-        endDate = addWeeks(startDate, 1);
-      } else if (period === "monthly") {
-        const [year, month] = dateStr.split("-");
-        startDate = new Date(Number(year), Number(month) - 1, 1);
-        endDate = addMonths(startDate, 1);
-      } else if (period === "yearly") {
-        startDate = new Date(Number(dateStr), 0, 1);
-        endDate = addYears(startDate, 1);
-      } else {
-        startDate = new Date(dateStr);
-        endDate = addDays(startDate, 1);
+    if (dateStr) {
+      const parsed = parseISO(dateStr); // bisa YYYY-MM-DD atau lebih
+      const baseDate = startOfDay(parsed);
+
+      switch (period) {
+        case "daily":
+          startDate = baseDate;
+          endDate = addDays(startDate, 1);
+          break;
+        case "weekly":
+          startDate = startOfWeek(baseDate, { weekStartsOn: 1 }); // Senin
+          endDate = addWeeks(startDate, 1);
+          break;
+        case "monthly":
+          startDate = startOfMonth(baseDate);
+          endDate = addMonths(startDate, 1);
+          break;
+        case "yearly":
+          startDate = startOfYear(baseDate);
+          endDate = addYears(startDate, 1);
+          break;
+        default:
+          startDate = baseDate;
+          endDate = addDays(baseDate, 1);
       }
     } else if (start && end) {
-      startDate = new Date(start);
-      endDate = new Date(end);
+      startDate = parseISO(start);
+      endDate = parseISO(end);
     } else {
-      const now = new Date();
+      const now = startOfDay(new Date());
       if (period === "daily") {
-        startDate = subDays(now, 1);
-        endDate = addDays(startDate, 1);
+        startDate = now;
+        endDate = addDays(now, 1);
       } else if (period === "weekly") {
         startDate = startOfWeek(now, { weekStartsOn: 1 });
         endDate = addWeeks(startDate, 1);
@@ -65,14 +66,13 @@ export async function GET(req: NextRequest) {
         startDate = startOfYear(now);
         endDate = addYears(startDate, 1);
       } else {
-        startDate = subDays(now, 1);
-        endDate = addDays(startDate, 1);
+        startDate = now;
+        endDate = addDays(now, 1);
       }
     }
 
-    // Query top 5 menuId dengan total quantity terbanyak
+    // Query top 5 menu dengan total quantity terbanyak
     const [topSellers] = await db.execute(
-      
       `
       SELECT coi.menuId, SUM(coi.quantity) as totalSold
       FROM completedOrderItem coi

@@ -171,8 +171,8 @@ export async function GET(req: NextRequest) {
           mh_applied.HppPerUnit AS applied_modifier_master_hpp
           
       FROM completedOrder co
-      JOIN completedOrderItem coi ON co.id = coi.orderId
-      JOIN menu m ON coi.menuId = m.id
+      LEFT JOIN completedOrderItem coi ON co.id = coi.orderId
+      LEFT JOIN menu m ON coi.menuId = m.id
       LEFT JOIN completedOrderItemModifier coim ON coi.id = coim.completedOrderItemId
       LEFT JOIN modifier md_applied ON coim.modifierId = md_applied.id
       LEFT JOIN ModifierHPPUnit mh_applied ON coim.modifierId = mh_applied.modifierId

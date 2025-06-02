@@ -576,9 +576,9 @@ export default function KasirPage() {
           body: JSON.stringify({
             orderId: newOrder.id,
             paymentMethod: "ewallet",
-            paymentStatus: "paid",
+            paymentStatus: "Sedang Diproses",
             paymentId: paymentId || newOrder.paymentId,
-            status: "paid",
+            status: "Sedang Diproses",
           }),
         });
 
@@ -1929,10 +1929,10 @@ function OrderItemComponent({
         ))}
       </ul>
       
-      {/* hasil pembayaran ewallet */}
+    
       {isPaidOrder && order.status !== "Sedang Diproses" && order.status !== "Selesai" && (
         <div className="mt-4 space-y-2">
-          {/* Tampilkan status pembayaran */}
+          
           {(paymentStatusText || (order.paymentStatus === "paid" && order.paymentMethod === "ewallet")) && (
             <p className="text-green-600 font-semibold">
               {paymentStatusText || "Status Payment: Paid via E-Wallet"}
@@ -1964,7 +1964,7 @@ function OrderItemComponent({
         </div>
       )}
 
-      {order.status === "pending" && confirmPayment && (
+      {/* {order.status === "pending" && confirmPayment && (
         <div className="mt-4 space-y-2">
           {paymentStatusText && (
             <p className="text-green-600 font-semibold">{paymentStatusText}</p>
@@ -2038,7 +2038,7 @@ function OrderItemComponent({
             ❌ Batal Pesanan
           </button>
         </div>
-      )}
+      )} */}
 
       {order.status === "Sedang Diproses" && markOrderAsCompleted && (
         <div className="mt-4 space-y-2">

@@ -103,6 +103,7 @@ const GrossProfit = () => {
   const cogs = data?.summary?.cogs ?? 0;
   const cogsPercentage = netSales > 0 ? ((cogs / netSales) * 100).toFixed(2) : "0.00";
   const grossProfit = data?.summary?.grossProfit ?? 0;
+  const grossProfitPercentage = (100 - Number(cogsPercentage));
 
   const tableData = data
     ? [
@@ -229,7 +230,7 @@ const GrossProfit = () => {
             <span>Gross Profit</span>
             <span>
               {formatCurrency(grossProfit)}{" "}
-              <span className="text-green-500">({100 - Number(cogsPercentage)}%)</span>
+              <span className="text-green-500">({grossProfitPercentage.toFixed(2)}%)</span>
             </span>
           </div>
         </div>

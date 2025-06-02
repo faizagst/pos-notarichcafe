@@ -20,9 +20,11 @@ function getStartAndEndDates(period: string, dateString?: string): { startDate: 
       endDate.setDate(startDate.getDate() + 1);
       break;
     case "weekly": {
-      const day = date.getDay();
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-      startDate = new Date(date.setDate(diff));
+      const currentDay = date.getDay(); // 0 (Sun) to 6 (Sat)
+      const offsetToMonday = (currentDay + 6) % 7; // Senin = 0, Minggu = 6
+      startDate = new Date(date);
+      startDate.setDate(date.getDate() - offsetToMonday);
+      startDate.setHours(0, 0, 0, 0);
       endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 7);
       break;

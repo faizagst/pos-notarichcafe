@@ -160,10 +160,10 @@ export default function ModifierPage() {
 
       const data = await response.json();
 
-     if (!response.ok) {
-      toast.error(data.error || data.message || `Gagal ${isEditing ? "mengedit" : "menambahkan"} modifier`);
-      return;
-    }
+      if (!response.ok) {
+        toast.error(data.error || data.message || `Gagal ${isEditing ? "mengedit" : "menambahkan"} modifier`);
+        return;
+      }
 
       await fetchModifiers();
       toast.success(`Modifier berhasil ${isEditing ? "diperbarui" : "ditambahkan"}!`);
@@ -185,12 +185,13 @@ export default function ModifierPage() {
         method: "DELETE",
       });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Gagal menghapus modifier: ${errorData || response.statusText}`);
+      if (response.ok) {
+        fetchModifiers();
+        toast.success("Modifier berhasil dihapus!");
+      } else {
+        const errorData = await response.json();
+        toast.error(`Gagal menghapus modifier: ${errorData.message || "Unknown error"}`);
       }
-      await fetchModifiers();
-      toast.success("Modifier berhasil dihapus!");
     } catch (err) {
       console.error("Error:", err);
       toast.error("Gagal menghapus modifier");

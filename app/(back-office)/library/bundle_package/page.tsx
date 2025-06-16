@@ -82,6 +82,7 @@ const BundlesPage: React.FC = () => {
       });
       if (res.ok) {
         fetchBundles();
+        toast.success("bundle berhasil dihapus!");
       } else {
         const data = await res.json();
         toast.error(data.message || 'Gagal menghapus bundle');

@@ -1,4 +1,3 @@
-// app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import * as argon2 from 'argon2';
@@ -24,11 +23,12 @@ export async function POST(req: NextRequest) {
       return response;
     };
 
-    // === Try user table ===
+    // === Try user (employee) table ===
     const [userRows]: any = await db.query(`
-      SELECT u.id, u.username, u.email, u.password, u.token, r.name as role
+      SELECT u.id, u.username, u.email, u.password, u.token, r.name as role, e.expiredDate
       FROM user u
       LEFT JOIN roleEmployee r ON u.roleId = r.id
+      LEFT JOIN employee e ON u.employeeId = e.id
       WHERE u.username = ?
       LIMIT 1
     `, [username]);
@@ -37,8 +37,19 @@ export async function POST(req: NextRequest) {
       const user = userRows[0];
 
       const isPasswordValid = await argon2.verify(user.password, password);
-      if (!isPasswordValid) return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
-      if (!user.token || !user.role) return NextResponse.json({ message: 'Invalid user data' }, { status: 500 });
+      if (!isPasswordValid) {
+        return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+      }
+
+      if (!user.token || !user.role) {
+        return NextResponse.json({ message: 'Invalid user data' }, { status: 500 });
+      }
+
+      const now = new Date();
+      const expiredDate = user.expiredDate ? new Date(user.expiredDate) : null;
+      if (!expiredDate || expiredDate < now) {
+        return NextResponse.json({ message: 'Account expired' }, { status: 403 });
+      }
 
       return createLoginResponse(user.role, user.token, {
         id: user.id,

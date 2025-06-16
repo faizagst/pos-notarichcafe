@@ -274,9 +274,13 @@ const GetDiscount: React.FC = () => {
       const res = await fetch(`/api/discount/${id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Failed to delete discount');
-      toast.success("Berhasil hapus diskon!");
-      fetchDiscounts();
+       if (res.ok) {
+        fetchDiscounts();
+        toast.success("Diskon berhasil dihapus!");
+      } else {
+        const data = await res.json();
+        toast.error(data.message || 'Gagal menghapus diskon');
+      }
     } catch (error) {
       console.error('Error deleting discount:', error);
     }

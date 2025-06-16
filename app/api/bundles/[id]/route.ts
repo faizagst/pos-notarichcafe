@@ -235,6 +235,16 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   if (!id) return NextResponse.json({ message: "Missing bundle id" }, { status: 400 });
 
   try {
+     const [usedInOrder] = await db.query(
+      `SELECT id FROM completedOrderItem WHERE menuId = ? LIMIT 1`,
+      [id]
+    );
+
+    if ((usedInOrder as any[]).length > 0) {
+      return NextResponse.json({
+        message: "Bundle tidak bisa dihapus karena sudah digunakan dalam transaksi",
+      }, { status: 409 });
+    }
     // Hapus terlebih dahulu relasi yang terkait
     await db.query("DELETE FROM menuComposition WHERE bundleId = ?", [id]);
     await db.query("DELETE FROM menuModifier WHERE menuId = ?", [id]);

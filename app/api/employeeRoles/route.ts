@@ -144,6 +144,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Role ID is required" }, { status: 400 });
     }
 
+     const [usedByEmployees] = await db.query(
+      `SELECT id FROM employee WHERE roleId = ? LIMIT 1`,
+      [id]
+    );
+
+    if ((usedByEmployees as any[]).length > 0) {
+      return NextResponse.json({
+        error: "Role tidak bisa dihapus karena masih digunakan oleh karyawan",
+      }, { status: 409 });
+    }
+
     await db.query(`DELETE FROM roleEmployee WHERE id = ?`, [id]);
 
     return NextResponse.json({ message: "Role deleted successfully" }, { status: 200 });

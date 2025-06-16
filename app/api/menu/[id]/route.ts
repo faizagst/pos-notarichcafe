@@ -39,6 +39,17 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   }
 
   try {
+    const [usedInOrder] = await db.query(
+      `SELECT id FROM completedOrderItem WHERE menuId = ? LIMIT 1`,
+      [menuId]
+    );
+
+    if ((usedInOrder as any[]).length > 0) {
+      return NextResponse.json({
+        message: "Menu tidak bisa dihapus karena sudah digunakan dalam transaksi",
+      }, { status: 409 });
+    }
+    
     // Hapus relasi terlebih dahulu
     await db.query(`DELETE FROM menuIngredient WHERE menuId = ?`, [menuId]);
     await db.query(`DELETE FROM menuModifier WHERE menuId = ?`, [menuId]);

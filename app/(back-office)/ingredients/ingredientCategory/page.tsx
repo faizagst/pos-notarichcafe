@@ -50,8 +50,10 @@ export default function CategoryList() {
       const res = await fetch(`/api/ingredientCategory/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchCategories();
+        toast.success("Kategori berhasil dihapus!")
       } else {
-        toast.error('Gagal menghapus kategori');
+        const errorData = await res.json();
+        toast.error(`Gagal menghapus kategori: ${errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error('Error deleting category:', error);

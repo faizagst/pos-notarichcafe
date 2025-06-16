@@ -204,6 +204,18 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ message: "ID is required" }, { status: 400 });
     }
 
+    const [usedInOrders]: any = await db.query(
+      `SELECT id FROM completedOrderItemModifier WHERE modifierId = ?`,
+      [id]
+    );
+
+    if (usedInOrders.length > 0) {
+      return NextResponse.json(
+        { message: "Modifier tidak dapat dihapus karena sudah digunakan dalam transaksi." },
+        { status: 409 }
+      );
+    }
+
     await db.execute(`DELETE FROM modifier WHERE id = ?`, [id]);
 
     return new NextResponse(null, { status: 204 });

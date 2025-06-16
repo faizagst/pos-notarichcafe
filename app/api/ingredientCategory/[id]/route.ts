@@ -60,6 +60,17 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   }
 
   try {
+    const [usedIngredients]: any = await db.query(
+      `SELECT id FROM ingredient WHERE categoryId = ?`,
+      [categoryId]
+    );
+
+    if (usedIngredients.length > 0) {
+      return NextResponse.json({
+        message: "Kategori tidak dapat dihapus karena masih digunakan oleh bahan",
+      }, { status: 409 });
+    }
+
     const [deletedCategory]: any = await db.execute(
       `SELECT * FROM ingredientCategory WHERE id = ?`,
       [categoryId]

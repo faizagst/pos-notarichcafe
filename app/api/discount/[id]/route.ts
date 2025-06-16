@@ -54,6 +54,30 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   }
 
   try {
+    // Validasi apakah diskon masih digunakan oleh menu
+    const [usedInMenus] = await db.query(
+      `SELECT id FROM menuDiscount WHERE discountId = ? LIMIT 1`,
+      [discountId]
+    );
+
+    if ((usedInMenus as any[]).length > 0) {
+      return NextResponse.json({
+        message: "Diskon tidak dapat dihapus karena masih digunakan oleh menu",
+      }, { status: 409 });
+    }
+
+    // Validasi apakah diskon pernah digunakan pada transaksi
+    const [usedInOrders] = await db.query(
+      `SELECT id FROM completedOrder WHERE discountId = ? LIMIT 1`,
+      [discountId]
+    );
+
+    if ((usedInOrders as any[]).length > 0) {
+      return NextResponse.json({
+        message: "Diskon tidak dapat dihapus karena sudah digunakan pada transaksi",
+      }, { status: 409 });
+    }
+
     // Hapus relasi jika ada (contoh: menuDiscount)
     await db.query(`DELETE FROM menuDiscount WHERE discountId = ?`, [discountId]);
 

@@ -18,16 +18,16 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ message: "Nama kategori wajib diisi" }, { status: 400 });
     }
 
-      // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh modifier Category lain
-      if (body.name) {
-        const [existingRows]: any = await db.query(
-          'SELECT id FROM modifierCategory WHERE name = ? AND id != ?',
-          [body.name, categoryId]
-        );
-        if (existingRows.length > 0) {
-          return NextResponse.json({ error: 'Category name already exists' }, { status: 409 });
-        }
+    // Jika user ingin mengubah nama, cek apakah nama sudah dipakai oleh modifier Category lain
+    if (body.name) {
+      const [existingRows]: any = await db.query(
+        'SELECT id FROM modifierCategory WHERE name = ? AND id != ?',
+        [body.name, categoryId]
+      );
+      if (existingRows.length > 0) {
+        return NextResponse.json({ error: 'Category name already exists' }, { status: 409 });
       }
+    }
 
     await db.execute(
       "UPDATE modifierCategory SET name = ?, description = ?, updatedAt = NOW() WHERE id = ?",
@@ -59,6 +59,18 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   }
 
   try {
+    // Cek apakah kategori masih dipakai oleh modifier
+    const [modifiers]: any = await db.query(
+      "SELECT id FROM modifier WHERE categoryId = ?",
+      [categoryId]
+    );
+    if (modifiers.length > 0) {
+      return NextResponse.json(
+        { message: "Kategori tidak bisa dihapus karena masih digunakan oleh modifier." },
+        { status: 409 }
+      );
+    }
+
     await db.execute("DELETE FROM modifierCategory WHERE id = ?", [categoryId]);
 
     return NextResponse.json({ message: "Kategori modifier berhasil dihapus" }, { status: 200 });

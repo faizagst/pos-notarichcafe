@@ -198,6 +198,17 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     try {
+        const [usedInMenu]: any = await db.query(
+            `SELECT id FROM menuIngredient WHERE ingredientId = ?`,
+            [ingredientId]
+        );
+
+        if (usedInMenu.length > 0) {
+            return NextResponse.json({
+                message: "Ingredient tidak dapat dihapus karena masih digunakan dalam menu",
+            }, { status: 409 });
+        }
+
         const [gudangRows] = await db.query('SELECT id FROM gudang WHERE ingredientId = ?', [ingredientId]);
         const gudangIds = (gudangRows as any[]).map(g => g.id);
 

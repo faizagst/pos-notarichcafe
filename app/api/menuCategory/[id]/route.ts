@@ -58,6 +58,17 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   }
 
   try {
+    const [usedMenus]: any = await db.query(
+      "SELECT id FROM menu WHERE category = (SELECT kategori FROM categoryMenu WHERE id = ?)",
+      [categoryId]
+    );
+
+    if (usedMenus.length > 0) {
+      return NextResponse.json({
+        message: "Kategori tidak dapat dihapus karena masih digunakan oleh menu",
+      }, { status: 409 });
+    }
+
     await db.execute("DELETE FROM categoryMenu WHERE id = ?", [categoryId]);
 
     return NextResponse.json({ message: "Kategori menu berhasil dihapus" }, { status: 200 });

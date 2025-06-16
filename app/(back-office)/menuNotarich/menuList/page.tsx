@@ -95,9 +95,12 @@ export default function ManagerMenusPage() {
         method: "DELETE",
       });
       if (res.ok) {
+        fetchMenus();
         setMenus(menus.filter((menu) => menu.id !== menuId));
+        toast.success("Menu berhasil dihapus!");
       } else {
-        toast.error("Gagal menghapus menu.");
+        const errorData = await res.json();
+        toast.error(`Gagal menghapus menu: ${errorData.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error deleting menu:", error);

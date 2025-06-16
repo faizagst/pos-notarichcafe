@@ -281,22 +281,22 @@ export default function EmployeeAccess() {
         appPermissions,
         backofficePermissions,
       };
-  
+
       let method = "POST";
       let url = "/api/employeeRoles";
       if (isEditMode && editingRoleId) {
         method = "PUT";
         (payload as any).id = editingRoleId;
       }
-  
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-  
+
       const responseData = await res.json();
-  
+
       if (!res.ok) {
         if (res.status === 409) {
           toast.error(responseData.error || "Role name already exists");
@@ -305,7 +305,7 @@ export default function EmployeeAccess() {
         toast.error(responseData.error || "Failed to submit role");
         return;
       }
-  
+
       toast.success(isEditMode ? "Role updated successfully!" : "Role created successfully!");
       await fetchRoles();
       setShowForm(false);
@@ -313,7 +313,7 @@ export default function EmployeeAccess() {
       toast.error("Unexpected error occurred");
     }
   };
-  
+
 
   // ===================== TOGGLE PARENT CHECKBOX =====================
   const toggleParentPermission = (
@@ -348,9 +348,10 @@ export default function EmployeeAccess() {
       });
       if (res.ok) {
         await fetchRoles();
-        toast.success("Employee deleted successfully!");
+        toast.success("Role berhasil dihapus!");
       } else {
-        toast.error("Failed to delete employee");
+        const errorData = await res.json();
+        toast.error(`Gagal menghapus role: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error deleting employee:", error);

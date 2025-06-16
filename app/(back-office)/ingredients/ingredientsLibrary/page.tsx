@@ -216,14 +216,16 @@ export default function IngredientsTable() {
     if (!confirm("Apakah Anda yakin ingin menghapus ingredient ini?")) return;
     try {
       const res = await fetch(`/api/ingredients/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        throw new Error("Gagal menghapus ingredient.");
+      if (res.ok) {
+        fetchIngredients();
+        setIngredients(ingredients.filter((ing) => ing.id !== id));
+        toast.success("Ingredient berhasil dihapus!");
+      } else {
+        const errorData = await res.json();
+        toast.error(`Gagal menghapus ingredient: ${errorData.message || "Unknown error"}`);
       }
-      setIngredients(ingredients.filter((ing) => ing.id !== id));
-      toast.success("Ingredient berhasil dihapus!");
     } catch (err) {
       console.error(err);
-      alert("Gagal menghapus ingredient.");
       toast.error("Ingredient gagal dihapus!");
     }
   };
@@ -296,46 +298,46 @@ export default function IngredientsTable() {
   };
 
   // Submit modal edit untuk bahan RAW
- const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  if (!selectedIngredient) return;
+  const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedIngredient) return;
 
-  // Hitung nilai akhir baru berdasarkan original + tambahan
-  const updatedStockIn =
-    selectedIngredient.originalStockIn + (parseFloat(additionalStock) || 0);
-  const updatedWasted =
-    selectedIngredient.originalWasted + (parseFloat(additionalWasted) || 0);
+    // Hitung nilai akhir baru berdasarkan original + tambahan
+    const updatedStockIn =
+      selectedIngredient.originalStockIn + (parseFloat(additionalStock) || 0);
+    const updatedWasted =
+      selectedIngredient.originalWasted + (parseFloat(additionalWasted) || 0);
 
-  try {
-    const res = await fetch(`/api/ingredients/${selectedIngredient.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...selectedIngredient,
-        stockIn: updatedStockIn,
-        wasted: updatedWasted,
-      }),
-    });
+    try {
+      const res = await fetch(`/api/ingredients/${selectedIngredient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...selectedIngredient,
+          stockIn: updatedStockIn,
+          wasted: updatedWasted,
+        }),
+      });
 
-    const data = await res.json();
-    if (res.ok) {
-      toast.success("Ingredient berhasil diedit!");
-      fetchIngredients();
-      calculateAndUpdateTotalPrice();
-      setIngredients(
-        ingredients.map((ing) =>
-          ing.id === selectedIngredient.id ? data.ingredient : ing
-        )
-      );
-      setSelectedIngredient(null);
-    } else {
-      toast.error(data.message || "Gagal mengupdate ingredient.");
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Ingredient berhasil diedit!");
+        fetchIngredients();
+        calculateAndUpdateTotalPrice();
+        setIngredients(
+          ingredients.map((ing) =>
+            ing.id === selectedIngredient.id ? data.ingredient : ing
+          )
+        );
+        setSelectedIngredient(null);
+      } else {
+        toast.error(data.message || "Gagal mengupdate ingredient.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Terjadi kesalahan saat mengupdate ingredient.");
     }
-  } catch (err) {
-    console.error(err);
-    toast.error("Terjadi kesalahan saat mengupdate ingredient.");
-  }
-};
+  };
 
 
   // Submit modal edit untuk bahan SEMI_FINISHED
@@ -583,7 +585,7 @@ export default function IngredientsTable() {
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[456px]">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
               <tr>
